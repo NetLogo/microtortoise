@@ -1,0 +1,34 @@
+{
+
+  "name":        "microtortoise"
+, "version":     "0.1.0"
+, "description": "Ants, but small"
+, "homepage":    "https://github.com/NetLogo/???"
+, "repository":  { "type": "git", "url": "git+https://github.com/NetLogo/???.git" }
+, "bugs":        { "url": "https://github.com/NetLogo/???/issues" }
+, "author":      "TheBizzle"
+, "license":     "GPL-2"
+, "private":     true
+, "type":        "module"
+
+, "engines" : { "npm":  "~11.8.0"
+              , "node": "~24.13.1"
+              }
+
+, "scripts": { "build":   "npx tsc"
+             , "ci-lint": "npx eslint ."
+             , "lint":    "npx tsc && npx eslint src"
+             , "run":     "npx node dist/src/controller.js"
+             , "start":   "npx tsc && npx node dist/src/controller.js"
+             , "test":    "echo \"TODO: Testing\" && exit 1"
+             }
+
+, "dependencies": {
+                  }
+
+, "devDependencies": { "eslint":            "~9.39.0"
+                     , "typescript":        "~5.5.0"
+                     , "typescript-eslint": "~8.53.0"
+                     }
+
+}
