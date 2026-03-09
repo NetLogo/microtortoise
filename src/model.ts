@@ -364,11 +364,11 @@ class Workspace {
     return this.globals[name]!;
   }
 
-  public patchAt(turtle: Turtle): Patch {
+  public patchAt(turtle: Turtle): Patch | undefined {
     return this.patchAtCor(turtle.xcor, turtle.ycor);
   }
 
-  public patchAtCor(x: number, y: number): Patch {
+  public patchAtCor(x: number, y: number): Patch | undefined {
 
     let roundedX = -1;
 
@@ -390,8 +390,15 @@ class Workspace {
       roundedY = (fractional > 0.5) ? (integral - 1) : integral;
     }
 
-    const index = ((this.maxPycor - roundedY) * this.worldWidth) + roundedX - this.minPxcor;
-    return this.patches[index]!;
+    if (roundedX >= (this.maxPxcor + 0.5) ||
+        roundedX <  (this.minPxcor - 0.5) ||
+        roundedY >= (this.maxPycor + 0.5) ||
+        roundedY <  (this.minPycor - 0.5)) {
+      return undefined;
+    } else {
+      const index = ((this.maxPycor - roundedY) * this.worldWidth) + roundedX - this.minPxcor;
+      return this.patches[index]!;
+    }
 
   }
 
@@ -550,7 +557,7 @@ const go = (): void => {
 };
 
 const returnToNest = (self: Turtle): void => {
-  const patchHere = workspace.patchAt(self);
+  const patchHere = workspace.patchAt(self)!;
   if (patchHere.getVar("nest?") === true) {
     self.color = 15;
     self.rotate(180);
@@ -561,7 +568,7 @@ const returnToNest = (self: Turtle): void => {
 };
 
 const lookForFood = (self: Turtle): void => {
-  const patchHere = workspace.patchAt(self);
+  const patchHere = workspace.patchAt(self)!;
   const food      = patchHere.getVar("food") as number;
   if (food > 0) {
     self.color = 26;
