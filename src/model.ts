@@ -7,6 +7,71 @@ declare global {
 type NetLogoValue =
   boolean | number | string | Turtle | Patch | TurtleSet | PatchSet | Array<NetLogoValue>;
 
+type WorldUpdate = {
+  height:                    number
+, id:                        number
+, patchesAllBlack:           boolean
+, patchesWithLabels:         boolean
+, maxPxcor:                  number
+, maxPycor:                  number
+, minPxcor:                  number
+, minPycor:                  number
+, patchSize:                 number
+, ticks:                     number
+, unbreededLinksAreDirected: boolean
+, width:                     number
+, wrappingAllowedInX:        boolean
+, wrappingAllowedInY:        boolean
+};
+
+type TurtleUpdate = {
+  breed:         string
+, color:         number
+, heading:       number
+, who:           number
+, "label-color": number
+, "hidden?":     boolean
+, label:         string
+, "pen-size":    number
+, "pen-mode":    string
+, shape:         string
+, size:          number
+, xcor:          number
+, ycor:          number
+};
+
+type PatchUpdate = {
+  id:             number
+, pcolor:         number
+, plabel:         string
+, "plabel-color": number
+, pxcor:          number
+, pycor:          number
+};
+
+const Updater = {
+
+  turtles: {} as Record<number, TurtleUpdate | undefined>
+, patches: {} as Record<number,  PatchUpdate | undefined>
+, world:   {} as Record<number,  WorldUpdate | undefined>
+
+, drain(): object {
+
+    const out =
+      { turtles: this.turtles
+      , patches: this.patches
+      ,   world: this.world
+      };
+
+    this.turtles = {} as Record<number, TurtleUpdate | undefined>;
+    this.patches = {} as Record<number,  PatchUpdate | undefined>;
+    this.world   = {} as Record<number,  WorldUpdate | undefined>;
+
+    return out;
+
+  }
+
+};
 
 const Box = {
   distancexy: (patch: Patch, x: number, y: number): number => {
@@ -84,6 +149,22 @@ class Turtle extends Agent {
 
     this.recomputeDXY();
 
+    Updater.turtles[w] = {
+      breed:         "turtles"
+    , color:         this.color
+    , heading:       this.heading
+    , who:           w
+    , "label-color": 0
+    , "hidden?":     false
+    , label:         ""
+    , "pen-size":    1
+    , "pen-mode":    "up"
+    , shape:         shapeName
+    , size:          1
+    , xcor:          0
+    , ycor:          0
+    };
+
   }
 
   public ask(f: (self: Turtle) => void): void {
@@ -97,6 +178,17 @@ class Turtle extends Agent {
   public rotate(degrees: number): void {
     this.heading = (this.heading + (degrees + 360)) % 360;
     this.recomputeDXY();
+    (Updater.turtles[this.who] ??= {} as TurtleUpdate).heading = this.heading;
+  }
+
+  public setColor(value: number): void {
+    this.color = value;
+    (Updater.turtles[this.who] ??= {} as TurtleUpdate).color = value;
+  }
+
+  public setSize(value: number): void {
+    this.size = value;
+    (Updater.turtles[this.who] ??= {} as TurtleUpdate).size = value;
   }
 
   public setVar(name: string, value: NetLogoValue): void {
@@ -139,6 +231,15 @@ class Patch extends Agent {
       this.variables[v] = 0;
     }
 
+    Updater.patches[idNum] = {
+      id:             idNum
+    , pcolor:         this.pcolor
+    , plabel:         ""
+    , "plabel-color": 0
+    , pxcor:          x
+    , pycor:          y
+    };
+
   }
 
   public clear(): void {
@@ -149,10 +250,24 @@ class Patch extends Agent {
       this.variables[k] = 0;
     }
 
+    Updater.patches[this.id] = {
+      id:             this.id
+    , pcolor:         this.pcolor
+    , plabel:         ""
+    , "plabel-color": 0
+    , pxcor:          this.pxcor
+    , pycor:          this.pycor
+    };
+
   }
 
   public getVar(name: string): NetLogoValue {
     return this.variables[name]!;
+  }
+
+  public setColor(value: number): void {
+    this.pcolor = value;
+    (Updater.patches[this.id] ??= {} as PatchUpdate).pcolor = value;
   }
 
   public setVar(name: string, value: NetLogoValue): void {
@@ -160,7 +275,6 @@ class Patch extends Agent {
   }
 
 }
-
 
 class AgentSet<T extends Agent> {
 
@@ -231,6 +345,23 @@ class Workspace {
 
     this.worldHeight = 1 + mxy - mny;
     this.worldWidth  = 1 + mxx - mnx;
+
+    Updater.world[0] = {
+      height:                    this.worldHeight
+    , id:                        0
+    , patchesAllBlack:           false
+    , patchesWithLabels:         false
+    , maxPxcor:                  mxx
+    , maxPycor:                  mxy
+    , minPxcor:                  mnx
+    , minPycor:                  mny
+    , patchSize:                 7
+    , ticks:                     -1
+    , unbreededLinksAreDirected: true
+    , width:                     this.worldWidth
+    , wrappingAllowedInX:        false
+    , wrappingAllowedInY:        false
+    };
 
   }
 
@@ -354,10 +485,18 @@ class Workspace {
   }
 
   public forward(turtle: Turtle, units: number): void {
+
     if (this.canMove(turtle, units)) {
+
       turtle.xcor += units * turtle.dx;
       turtle.ycor += units * turtle.dy;
+
+      Updater.turtles[turtle.who] ??= {} as TurtleUpdate;
+      Updater.turtles[turtle.who]!.xcor = turtle.xcor;
+      Updater.turtles[turtle.who]!.ycor = turtle.ycor;
+
     }
+
   }
 
   public getGlobal(name: string): NetLogoValue {
@@ -419,6 +558,7 @@ class Workspace {
 
   public resetTicks(): void {
     this.ticks = 0;
+    (Updater.world[0] ??= {} as WorldUpdate).ticks = this.ticks;
   }
 
   public setDefaultTurtleShape(shapeName: string): void {
@@ -431,6 +571,7 @@ class Workspace {
 
   public tick(): void {
     this.ticks += 1;
+    (Updater.world[0] ??= {} as WorldUpdate).ticks = this.ticks;
   }
 
 }
@@ -449,8 +590,8 @@ const setup = (): void => {
   workspace.clearAll();
   workspace.setDefaultTurtleShape("bug");
   workspace.createTurtles(workspace.getGlobal("population") as number, (self: Turtle) => {
-    self.size  = 2;
-    self.color = 15;
+    self.setSize(2);
+    self.setColor(15);
   });
   setupPatches();
   workspace.resetTicks();
@@ -494,26 +635,27 @@ const setupFood = (self: Patch): void => {
 const recolorPatch = (self: Patch): void => {
 
   if (self.getVar("nest?") === true) {
-    self.pcolor = 115;
+    self.setColor(115);
   } else if ((self.getVar("food") as number) > 0) {
     switch (self.getVar("food-source-number") as number) {
       case 1: {
-        self.pcolor = 85;
+        self.setColor(85);
         break;
       }
       case 2: {
-        self.pcolor = 95;
+        self.setColor(95);
         break;
       }
       case 3: {
-        self.pcolor = 105;
+        self.setColor(105);
         break;
       }
       default:
         console.error("Impossible food source number");
     }
   } else {
-    self.pcolor = ColorModel.scaleColor(55, self.getVar("chemical") as number, 0.1, 5);
+    const color = ColorModel.scaleColor(55, self.getVar("chemical") as number, 0.1, 5);
+    self.setColor(color);
   }
 
   self.setVar("nest?"     ,       Box.distancexy(self, 0, 0) < 5);
@@ -559,7 +701,7 @@ const go = (): void => {
 const returnToNest = (self: Turtle): void => {
   const patchHere = workspace.patchAt(self)!;
   if (patchHere.getVar("nest?") === true) {
-    self.color = 15;
+    self.setColor(15);
     self.rotate(180);
   } else {
     patchHere.setVar("chemical", (patchHere.getVar("chemical") as number) + 60);
@@ -571,7 +713,7 @@ const lookForFood = (self: Turtle): void => {
   const patchHere = workspace.patchAt(self)!;
   const food      = patchHere.getVar("food") as number;
   if (food > 0) {
-    self.color = 26;
+    self.setColor(26);
     patchHere.setVar("food", food - 1);
     self.rotate(180);
   } else if ((patchHere.getVar("chemical") as number) >= 0.05 && (patchHere.getVar("chemical") as number) < 2) {
@@ -621,4 +763,4 @@ const chemicalAtAngle = (turtle: Turtle, angle: number): number => {
   return (p !== undefined) ? p.getVar("chemical") as number : 0;
 };
 
-export { setup, go };
+export { setup, go, Updater };

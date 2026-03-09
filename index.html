@@ -1,6 +1,84 @@
-<html>
-  <body>
-    <script src="resources/mtf.js"></script>
-    <script src="dist/src/model.js" type="module"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MicroTortoise Testing Page</title>
+</head>
+
+<body>
+
+  <button id="setupButton">
+    <pre>setup()</pre>
+  </button>
+
+  <button id="goButton">
+    <pre>go()</pre>
+  </button>
+
+  <div id="view-container" style="height: 600px; width: 600px;"></div>
+
+  <!-- `ViewController` needs this for `tortoise_require` -->
+  <script src="http://localhost:9000/netlogo-engine.js"></script>;
+
+  <script type="module">
+
+    import ViewController from "http://localhost:9000/assets/javascripts/target/coffee-output/main/beak/widgets/draw/view-controller.js";
+
+    import "./resources/mtf.js";
+    import { setup, go, Updater } from "./dist/src/model.js";
+
+    const viewWidget = {
+      fontSize: 11,
+      dimensions: {
+        maxPxcor: 35,
+        maxPycor: 35,
+        minPxcor: -35,
+        minPycor: -35,
+        patchSize: 7,
+        wrappingAllowedInX: false,
+        wrappingAllowedInY: false,
+      },
+    };
+
+    const container      = document.getElementById("view-container");
+    const viewController = new ViewController(container, viewWidget);
+    viewController.update(Updater.drain());
+
+    let tickCount = 0;
+
+    function onSetup() {
+      tickCount = 0;
+      setup();
+      viewController.update(Updater.drain());
+    }
+
+    function onGo() {
+
+      let lastTime  = 0;
+
+      const f =
+        (timestamp) => {
+          const delta = timestamp - lastTime;
+          lastTime    = timestamp;
+          go();
+          viewController.update(Updater.drain());
+          if (tickCount++ < 1000) {
+            requestAnimationFrame(f);
+          }
+        };
+
+      requestAnimationFrame(f);
+
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("setupButton").addEventListener("click", onSetup);
+      document.getElementById(   "goButton").addEventListener("click", onGo   );
+    });
+
+  </script>
+</body>
+
 </html>
