@@ -16,7 +16,7 @@
               }
 
 , "scripts": { "build":   "npx tsc"
-             , "ci-lint": "npx eslint ."
+             , "ci-lint": "npx eslint src"
              , "lint":    "npx tsc && npx eslint src"
              , "run":     "npx node dist/src/controller.js"
              , "start":   "npx tsc && npx node dist/src/controller.js"
