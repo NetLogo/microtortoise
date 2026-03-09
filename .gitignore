@@ -10,10 +10,10 @@
 /TODO*.md
 /tsconfig.tsbuildinfo
 
-/cypress/screenshots/
-/cypress/videos/
-/dist/
-/node_modules/
+/typescript/cypress/screenshots/
+/typescript/cypress/videos/
+/typescript/dist/
+/typescript/node_modules/
 
 target/
 tmp/
