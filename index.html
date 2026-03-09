@@ -17,6 +17,10 @@
     <pre>Go</pre>
   </button>
 
+  <button id="benchButton">
+    <pre>Benchmark</pre>
+  </button>
+
   <div id="view-container" style="height: 600px; width: 600px;"></div>
 
   <!-- `ViewController` needs this for `tortoise_require` -->
@@ -73,9 +77,25 @@
 
     }
 
+    function onBench() {
+      const startTime = performance.now();
+      for (let i = 0; i < 20; i++) {
+        Updater.turtles = {};
+        Updater.patches = {};
+        Updater.world   = {};
+        setup();
+        for (let x = 0; x < 1000; x++) {
+          go();
+        }
+      }
+      const endTime = performance.now();
+      console.log(startTime, endTime, endTime - startTime);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("setupButton").addEventListener("click", onSetup);
       document.getElementById(   "goButton").addEventListener("click", onGo   );
+      document.getElementById("benchButton").addEventListener("click", onBench);
     });
 
   </script>
