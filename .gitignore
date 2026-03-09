@@ -7,10 +7,6 @@
 .DS_Store
 .history
 
-/.prod_db_env
-/.prod_env
-/cert.pem
-/key.pem
 /TODO*.md
 /tsconfig.tsbuildinfo
 
