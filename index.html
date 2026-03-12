@@ -25,8 +25,12 @@
     <pre>Make Recording</pre>
   </button>
 
-  <button id="vizButton">
-    <pre>Play Recording</pre>
+  <button id="vizTSButton">
+    <pre>Play Recording (TS)</pre>
+  </button>
+
+  <button id="vizScalaButton">
+    <pre>Play Recording (Scala)</pre>
   </button>
 
   <div id="view-container" style="height: 600px; width: 600px;"></div>
@@ -101,9 +105,9 @@
       console.log(startTime, endTime, endTime - startTime);
     }
 
-    async function onViz() {
+    async function onViz(path) {
 
-      const response = await fetch("/microtortoise-data.json");
+      const response = await fetch(path);
       const arr      = await response.json();
 
       const f =
@@ -116,6 +120,14 @@
 
       requestAnimationFrame(f);
 
+    }
+
+    async function onVizTS() {
+      await onViz("/microtortoise-data.json");
+    }
+
+    async function onVizScala() {
+      await onViz("/microtortoise-data-scala.json");
     }
 
     function onRecord() {
@@ -147,11 +159,12 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById( "setupButton").addEventListener("click", onSetup );
-      document.getElementById(    "goButton").addEventListener("click", onGo    );
-      document.getElementById( "benchButton").addEventListener("click", onBench );
-      document.getElementById("recordButton").addEventListener("click", onRecord);
-      document.getElementById(   "vizButton").addEventListener("click", onViz   );
+      document.getElementById(   "setupButton").addEventListener("click", onSetup   );
+      document.getElementById(      "goButton").addEventListener("click", onGo      );
+      document.getElementById(   "benchButton").addEventListener("click", onBench   );
+      document.getElementById(  "recordButton").addEventListener("click", onRecord  );
+      document.getElementById(   "vizTSButton").addEventListener("click", onVizTS   );
+      document.getElementById("vizScalaButton").addEventListener("click", onVizScala);
     });
 
   </script>
