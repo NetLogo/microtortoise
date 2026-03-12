@@ -6,6 +6,8 @@ Ants, but small.
 
 ## How do you use it?
 
+Get a [Galapagos](www.github.com/NetLogo/Galapagos) instance running on port 9000.  Galapagos commit ec944e6fd8 is confirmed to work.
+
 ### Scala
 
 ```sh
