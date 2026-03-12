@@ -8,120 +8,147 @@ val RNG: MersenneTwisterFast = new MersenneTwisterFast()
 
 object Json {
 
-  def str(s: String): String =
-    s""""$s""""
+  def str(s: Any): String =
+    s""""${s.asInstanceOf[String]}""""
 
-  def bool(b: Boolean): String =
-    if (b)
+  def bool(b: Any): String =
+    if (b.asInstanceOf[Boolean])
       "true"
     else
       "false"
 
-  def num(n: Double): String =
-    if (n == n.toLong)
-      n.toLong.toString
-    else
-      n.toString
-
-  def num(n: Int): String =
-    n.toString
+  def num(x: Any): String =
+    x match {
+      case d: Double if d == d.toLong => d.toLong.toString
+      case d: Double                  => d.toString
+      case i: Int                     => i.toString
+    }
 
   def obj(pairs: (String, String)*): String =
     pairs.map { case (k, v) => s""""$k": $v""" }.mkString("{", ", ", "}")
 
 }
 
-case class WorldUpdate( height: Int, id: Int, patchesAllBlack: Boolean, patchesWithLabels: Boolean, maxPxcor: Int
-                      , maxPycor: Int, minPxcor: Int, minPycor: Int, patchSize: Double, ticks: Int
-                      , unbreededLinksAreDirected: Boolean, width: Int, wrappingAllowedInX: Boolean
-                      , wrappingAllowedInY: Boolean
-                      ) {
-  def toJson: String =
-    Json.obj( "height"                    -> Json.num(height)
-            , "id"                        -> Json.num(id)
-            , "patchesAllBlack"           -> Json.bool(patchesAllBlack)
-            , "patchesWithLabels"         -> Json.bool(patchesWithLabels)
-            , "maxPxcor"                  -> Json.num(maxPxcor)
-            , "maxPycor"                  -> Json.num(maxPycor)
-            , "minPxcor"                  -> Json.num(minPxcor)
-            , "minPycor"                  -> Json.num(minPycor)
-            , "patchSize"                 -> Json.num(patchSize)
-            , "ticks"                     -> Json.num(ticks)
-            , "unbreededLinksAreDirected" -> Json.bool(unbreededLinksAreDirected)
-            , "width"                     -> Json.num(width)
-            , "wrappingAllowedInX"        -> Json.bool(wrappingAllowedInX)
-            , "wrappingAllowedInY"        -> Json.bool(wrappingAllowedInY)
-            )
+trait UpdateKey
+
+enum TurtleKey extends UpdateKey {
+  case Breed, Color, Heading, Who, LabelColor, Hidden, Label, PenSize, PenMode, Shape, Size, Xcor, Ycor
 }
 
-case class TurtleUpdate( breed: String, color: Double, heading: Double, who: Int, labelColor: Double, hidden: Boolean
-                       , label: String, penSize: Double, penMode: String, shape: String, size: Double, xcor: Double
-                       , ycor: Double
-                       ) {
-  def toJson: String =
-    Json.obj( "breed"       -> Json.str(breed)
-            , "color"       -> Json.num(color)
-            , "heading"     -> Json.num(heading)
-            , "who"         -> Json.num(who)
-            , "label-color" -> Json.num(labelColor)
-            , "hidden?"     -> Json.bool(hidden)
-            , "label"       -> Json.str(label)
-            , "pen-size"    -> Json.num(penSize)
-            , "pen-mode"    -> Json.str(penMode)
-            , "shape"       -> Json.str(shape)
-            , "size"        -> Json.num(size)
-            , "xcor"        -> Json.num(xcor)
-            , "ycor"        -> Json.num(ycor)
-            )
+enum PatchKey extends UpdateKey {
+  case PatchID, PColor, PLabel, PLabelColor, Pxcor, Pycor
 }
 
-case class PatchUpdate(id: Int, pcolor: Double, plabel: String, plabelColor: Double, pxcor: Int, pycor: Int) {
-  def toJson: String =
-    Json.obj( "id"           -> Json.num(id)
-            , "pcolor"       -> Json.num(pcolor)
-            , "plabel"       -> Json.str(plabel)
-            , "plabel-color" -> Json.num(plabelColor)
-            , "pxcor"        -> Json.num(pxcor)
-            , "pycor"        -> Json.num(pycor)
-            )
+enum WorldKey extends UpdateKey {
+  case Height, PatchesAllBlack, PatchesWithLabels, MaxPxcor, MaxPycor, MinPxcor, MinPycor, PatchSize,
+       Ticks, UnbreededLinksAreDirected, Width, WorldID, WrappingAllowedInX, WrappingAllowedInY
+}
+
+type MiniUpdate[T <: UpdateKey] = MMap[T, Any]
+
+def worldToJson(update: MiniUpdate[WorldKey]): String = {
+
+  import WorldKey.*
+
+  val mappings =
+    Seq( "height"                    -> Json.num  -> Height
+       , "id"                        -> Json.num  -> WorldID
+       , "patchesAllBlack"           -> Json.bool -> PatchesAllBlack
+       , "patchesWithLabels"         -> Json.bool -> PatchesWithLabels
+       , "maxPxcor"                  -> Json.num  -> MaxPxcor
+       , "maxPycor"                  -> Json.num  -> MaxPycor
+       , "minPxcor"                  -> Json.num  -> MinPxcor
+       , "minPycor"                  -> Json.num  -> MinPycor
+       , "patchSize"                 -> Json.num  -> PatchSize
+       , "ticks"                     -> Json.num  -> Ticks
+       , "unbreededLinksAreDirected" -> Json.bool -> UnbreededLinksAreDirected
+       , "width"                     -> Json.num  -> Width
+       , "wrappingAllowedInX"        -> Json.bool -> WrappingAllowedInX
+       , "wrappingAllowedInY"        -> Json.bool -> WrappingAllowedInY
+       )
+
+  val updatePairs =
+    mappings.flatMap {
+      case ((k, conv), uk) => update.get(uk).map(conv andThen (v => k -> v))
+    }
+
+  Json.obj(updatePairs*)
+
+}
+
+def turtleToJson(update: MiniUpdate[TurtleKey]): String = {
+
+  import TurtleKey.*
+
+  val mappings =
+    Seq( "breed"       -> Json.str  -> Breed
+       , "color"       -> Json.num  -> Color
+       , "heading"     -> Json.num  -> Heading
+       , "who"         -> Json.num  -> Who
+       , "label-color" -> Json.num  -> LabelColor
+       , "hidden?"     -> Json.bool -> Hidden
+       , "label"       -> Json.str  -> Label
+       , "pen-size"    -> Json.num  -> PenSize
+       , "pen-mode"    -> Json.str  -> PenMode
+       , "shape"       -> Json.str  -> Shape
+       , "size"        -> Json.num  -> Size
+       , "xcor"        -> Json.num  -> Xcor
+       , "ycor"        -> Json.num  -> Ycor
+       )
+
+  val updatePairs =
+    mappings.flatMap {
+      case ((k, conv), uk) => update.get(uk).map(conv andThen (v => k -> v))
+    }
+
+  Json.obj(updatePairs*)
+
+}
+
+def patchToJson(update: MiniUpdate[PatchKey]): String = {
+
+  import PatchKey.*
+
+  val mappings =
+    Seq( "id"           -> Json.num -> PatchID
+       , "pcolor"       -> Json.num -> PColor
+       , "plabel"       -> Json.str -> PLabel
+       , "plabel-color" -> Json.num -> PLabelColor
+       , "pxcor"        -> Json.num -> Pxcor
+       , "pycor"        -> Json.num -> Pycor
+       )
+
+  val updatePairs =
+    mappings.flatMap {
+      case ((k, conv), uk) => update.get(uk).map(conv andThen (v => k -> v))
+    }
+
+  Json.obj(updatePairs*)
+
 }
 
 object Updater {
 
-  val turtles: MMap[Int, TurtleUpdate] = MMap.empty
-  val patches: MMap[Int, PatchUpdate]  = MMap.empty
-  val world:   MMap[Int, WorldUpdate]  = MMap.empty
+  val turtles: MMap[Int, MiniUpdate[TurtleKey]] = MMap.empty
+  val patches: MMap[Int, MiniUpdate[PatchKey]]  = MMap.empty
+  val world:   MMap[Int, MiniUpdate[WorldKey]]  = MMap.empty
 
-  def drain(): DrainedUpdates = {
+  def drain(): String = {
+
+    def mapJson[V](m: MMap[Int, V], f: V => String): String =
+      m.map { case (k, v) => s""""$k": ${f(v)}""" }.mkString("{", ", ", "}")
 
     val out =
-      DrainedUpdates(
-        turtles = turtles.toMap
-      , patches = patches.toMap
-      , world   =   world.toMap
-      )
+      Json.obj( "turtles" -> mapJson(turtles, turtleToJson)
+              , "patches" -> mapJson(patches, patchToJson)
+              , "world"   -> mapJson(  world, worldToJson)
+              )
 
     turtles.clear()
     patches.clear()
     world  .clear()
 
     out
-
-  }
-
-}
-
-case class DrainedUpdates(turtles: Map[Int, TurtleUpdate], patches: Map[Int, PatchUpdate], world: Map[Int, WorldUpdate]) {
-
-  def toJson: String = {
-
-    def mapJson[V](m: Map[Int, V], f: V => String): String =
-      m.map { case (k, v) => s""""$k": ${f(v)}""" }.mkString("{", ", ", "}")
-
-    Json.obj( "turtles" -> mapJson(turtles, _.toJson)
-            , "patches" -> mapJson(patches, _.toJson)
-            , "world"   -> mapJson(  world, _.toJson)
-            )
 
   }
 
@@ -196,21 +223,23 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
 
   recomputeDXY()
 
-  Updater.turtles(who) =
-    TurtleUpdate( breed      = "turtles"
-                , color      = color
-                , heading    = heading
-                , who        = who
-                , labelColor = 0
-                , hidden     = false
-                , label      = ""
-                , penSize    = 1
-                , penMode    = "up"
-                , shape      = shapeName
-                , size       = 1
-                , xcor       = 0
-                , ycor       = 0
-                )
+  Updater.turtles(who) = {
+    import TurtleKey.*
+    MMap( Breed      -> "turtles"
+        , Color      -> color
+        , Heading    -> heading
+        , Who        -> who
+        , LabelColor -> 0
+        , Hidden     -> false
+        , Label      -> ""
+        , PenSize    -> 1
+        , PenMode    -> "up"
+        , Shape      -> shapeName
+        , Size       -> 1
+        , Xcor       -> 0
+        , Ycor       -> 0
+        )
+  }
 
   def ask(f: Turtle => Unit): Unit =
     f(this)
@@ -219,52 +248,42 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
     variables(name)
 
   def rotate(degrees: Double): Unit = {
+
     heading = (heading + degrees + 360.0) % 360.0
     recomputeDXY()
-    Updater.turtles.updateWith(who) {
-      case Some(u) => Some(u.copy(heading = heading))
-      case None    => Some(blankUpdate.copy(heading = heading))
+
+    val mapping = TurtleKey.Heading -> heading
+    Updater.turtles.get(who).fold {
+      Updater.turtles += who -> MMap(mapping)
+    } {
+      _ += mapping
     }
+
   }
 
   def setColor(value: Double): Unit = {
     color = value
-    Updater.turtles.updateWith(who) {
-      case Some(u) => Some(u.copy(color = value))
-      case None    => Some(blankUpdate.copy(color = value))
+    val mapping = TurtleKey.Color -> color
+    Updater.turtles.get(who).fold {
+      Updater.turtles += who -> MMap(mapping)
+    } {
+      _ += mapping
     }
   }
 
   def setSize(value: Double): Unit = {
     size = value
-    // TODO: Updating is all wrong.  No blank update!
-    Updater.turtles.updateWith(who) {
-      case Some(u) => Some(u.copy(size = value))
-      case None    => Some(blankUpdate.copy(size = value))
+    val mapping = TurtleKey.Size -> size
+    Updater.turtles.get(who).fold {
+      Updater.turtles += who -> MMap(mapping)
+    } {
+      _ += mapping
     }
   }
 
   def setVar(name: String, value: Any): Unit = {
     variables(name) = value
   }
-
-  // Used as a base when we need to upsert an update record for a field change
-  // but no record exists yet.  Matches the constructor's initial values.
-  private def blankUpdate: TurtleUpdate = TurtleUpdate(
-    breed      = "turtles",
-    color      = color,
-    heading    = heading,
-    who        = who,
-    labelColor = 0,
-    hidden     = false,
-    label      = "",
-    penSize    = 1,
-    penMode    = "up",
-    shape      = shape,
-    size       = size,
-    xcor       = xcor,
-    ycor       = ycor
-  )
 
   private def recomputeDXY(): Unit = {
 
@@ -289,16 +308,20 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
     variables(v) = 0.0
   }
 
-  Updater.patches(idNum) =
-    PatchUpdate( id          = idNum
-               , pcolor      = pcolor
-               , plabel      = ""
-               , plabelColor = 0
-               , pxcor       = pxcor
-               , pycor       = pycor
-               )
+  Updater.patches(idNum) = {
+    import PatchKey.*
+    MMap( PatchID     -> idNum
+        , PColor      -> pcolor
+        , PLabel      -> ""
+        , PLabelColor -> 0
+        , Pxcor       -> pxcor
+        , Pycor       -> pycor
+        )
+  }
 
   def clear(): Unit = {
+
+    import PatchKey.*
 
     pcolor = 0.0
 
@@ -307,13 +330,13 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
     }
 
     Updater.patches(idNum) =
-      PatchUpdate( id          = idNum
-                 , pcolor      = 0.0
-                 , plabel      = ""
-                 , plabelColor = 0
-                 , pxcor       = pxcor
-                 , pycor       = pycor
-                 )
+      MMap( PatchID     -> idNum
+          , PColor      -> 0.0
+          , PLabel      -> ""
+          , PLabelColor -> 0
+          , Pxcor       -> pxcor
+          , Pycor       -> pycor
+          )
 
   }
 
@@ -322,10 +345,11 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
 
   def setColor(value: Double): Unit = {
     pcolor = value
-    // TODO: BS
-    Updater.patches.updateWith(idNum) {
-      case Some(u) => Some(u.copy(pcolor = value))
-      case None    => Some(PatchUpdate(idNum, value, "", 0, pxcor, pycor))
+    val mapping = PatchKey.PColor -> pcolor
+    Updater.patches.get(idNum).fold {
+      Updater.patches += idNum -> MMap(mapping)
+    } {
+      _ += mapping
     }
   }
 
@@ -390,22 +414,24 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
   var ticks: Int = -1
 
-  Updater.world(0) =
-    WorldUpdate( height                    = worldHeight
-               , id                        = 0
-               , patchesAllBlack           = false
-               , patchesWithLabels         = false
-               , maxPxcor                  = maxPxcor
-               , maxPycor                  = maxPycor
-               , minPxcor                  = minPxcor
-               , minPycor                  = minPycor
-               , patchSize                 = 7.0
-               , ticks                     = -1
-               , unbreededLinksAreDirected = true
-               , width                     = worldWidth
-               , wrappingAllowedInX        = false
-               , wrappingAllowedInY        = false
-               )
+  Updater.world(0) = {
+    import WorldKey.*
+    MMap( Height                    -> worldHeight
+        , WorldID                   -> 0
+        , PatchesAllBlack           -> false
+        , PatchesWithLabels         -> false
+        , MaxPxcor                  -> maxPxcor
+        , MaxPycor                  -> maxPycor
+        , MinPxcor                  -> minPxcor
+        , MinPycor                  -> minPycor
+        , PatchSize                 -> 7.0
+        , Ticks                     -> -1
+        , UnbreededLinksAreDirected -> true
+        , Width                     -> worldWidth
+        , WrappingAllowedInX        -> false
+        , WrappingAllowedInY        -> false
+        )
+  }
 
   def allPatches(): PatchSet  = new AgentSet(patches)
   def allTurtles(): TurtleSet = new AgentSet(turtles.toArray)
@@ -428,7 +454,6 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
     }
   }
 
-  // TODO: Check code
   def diffuse(varName: String, value: Double): Unit = {
 
     val xx = worldWidth
@@ -467,19 +492,23 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
   }
 
   def forward(turtle: Turtle, units: Double): Unit = {
+
     if (canMove(turtle, units)) {
+
       turtle.xcor += units * turtle.dx
       turtle.ycor += units * turtle.dy
-      // TODO: BS
-      Updater.turtles.updateWith(turtle.who) {
-        case Some(u) => Some(u.copy(xcor = turtle.xcor, ycor = turtle.ycor))
-        case None    =>
-          // Shouldn't normally happen, but produce a safe fallback
-          Some(TurtleUpdate("turtles", turtle.color, turtle.heading, turtle.who,
-                            0, false, "", 1, "up", turtle.shape, turtle.size,
-                            turtle.xcor, turtle.ycor))
+
+      val mappingX = TurtleKey.Xcor -> turtle.xcor
+      val mappingY = TurtleKey.Ycor -> turtle.ycor
+
+      Updater.turtles.get(turtle.who).fold {
+        Updater.turtles += turtle.who -> MMap(mappingX, mappingY)
+      } {
+        _ ++= Seq(mappingX, mappingY)
       }
+
     }
+
   }
 
   def getGlobal(name: String): Any =
@@ -536,10 +565,11 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
   def resetTicks(): Unit = {
     ticks = 0
-    // TODO: BS
-    Updater.world.updateWith(0) {
-      case Some(u) => Some(u.copy(ticks = 0))
-      case None    => None
+    val mapping = WorldKey.Ticks -> ticks
+    Updater.world.get(0).fold {
+      Updater.world += 0 -> MMap(mapping)
+    } {
+      _ += mapping
     }
   }
 
@@ -553,10 +583,11 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
   def tick(): Unit = {
     ticks += 1
-    // TODO: BS
-    Updater.world.updateWith(0) {
-      case Some(u) => Some(u.copy(ticks = ticks))
-      case None    => None
+    val mapping = WorldKey.Ticks -> ticks
+    Updater.world.get(0).fold {
+      Updater.world += 0 -> MMap(mapping)
+    } {
+      _ += mapping
     }
   }
 
@@ -742,16 +773,16 @@ object Runner {
 
         val writer = new BufferedWriter(new FileWriter("/home/jason/Downloads/microtortoise-data-scala.json"))
         writer.write("[")
-        writer.write(Updater.drain().toJson)
+        writer.write(Updater.drain())
 
         AntsModel.setup()
         writer.write(",")
-        writer.write(Updater.drain().toJson)
+        writer.write(Updater.drain())
 
         for (_ <- 0 until 1000) {
           AntsModel.go()
           writer.write(",")
-          writer.write(Updater.drain().toJson)
+          writer.write(Updater.drain())
         }
 
         writer.write("]")
