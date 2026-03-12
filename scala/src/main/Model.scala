@@ -771,7 +771,7 @@ object Runner {
 
       case "json" =>
 
-        val writer = new BufferedWriter(new FileWriter("/home/jason/Downloads/microtortoise-data-scala.json"))
+        val writer = new BufferedWriter(new FileWriter("../microtortoise-data-scala.json"))
         writer.write("[")
         writer.write(Updater.drain())
 

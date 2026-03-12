@@ -10,6 +10,8 @@
 /TODO*.md
 /tsconfig.tsbuildinfo
 
+/microtortoise-data*.json
+
 /typescript/cypress/screenshots/
 /typescript/cypress/videos/
 /typescript/dist/
