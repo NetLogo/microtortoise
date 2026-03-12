@@ -632,7 +632,6 @@ const setupFood = (self: Patch): void => {
 };
 
 const recolorPatch = (self: Patch): void => {
-
   if (self.getVar("nest?") === true) {
     self.setColor(115);
   } else if ((self.getVar("food") as number) > 0) {
@@ -656,10 +655,6 @@ const recolorPatch = (self: Patch): void => {
     const color = ColorModel.scaleColor(55, self.getVar("chemical") as number, 0.1, 5);
     self.setColor(color);
   }
-
-  self.setVar("nest?"     ,       Box.distancexy(self, 0, 0) < 5);
-  self.setVar("nest-scent", 200 - Box.distancexy(self, 0, 0));
-
 };
 
 const go = (): void => {
