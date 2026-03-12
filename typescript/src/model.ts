@@ -397,7 +397,6 @@ class Workspace {
 
   public diffuse(varName: string, value: number): void {
 
-    const yy = this.worldHeight;
     const xx = this.worldWidth;
 
     const scratch: Array<number> = [];
@@ -425,9 +424,9 @@ class Workspace {
         bitMask = 0b00011111;
       } else if (i >= (numPatches - xx)) { // Bottom row
         bitMask = 0b11111000;
-      } else if ((i % yy) === 0) { // Left column
+      } else if ((i % xx) === 0) { // Left column
         bitMask = 0b01101011;
-      } else if (((i + 1) % yy) === 0) { // Right column
+      } else if (((i + 1) % xx) === 0) { // Right column
         bitMask = 0b11010110;
       } else {
         bitMask = 0b11111111;
