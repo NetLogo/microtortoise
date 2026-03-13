@@ -463,7 +463,7 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
     for (i <- 0 until numPatches) {
 
-      val bitMask =
+      val bitMask: Short =
         if      (i == 0)                 { 0b0000_1011 }  // Top-left
         else if (i == (xx - 1))          { 0b0001_0110 }  // Top-right
         else if (i == (numPatches - xx)) { 0b0110_1000 }  // Bottom-left
