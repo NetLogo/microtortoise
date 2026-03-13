@@ -96,6 +96,7 @@
         Updater.turtles = {};
         Updater.patches = {};
         Updater.world   = {};
+        RNG.setSeed(1234);
         setup();
         for (let x = 0; x < 1000; x++) {
           go();

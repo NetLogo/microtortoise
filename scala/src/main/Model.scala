@@ -763,6 +763,7 @@ object Runner {
       case "bench" =>
         val start = System.nanoTime()
         for (_ <- 0 until 20) {
+          RNG.setSeed(1234)
           AntsModel.setup()
           for (_ <- 0 until 1000) {
             AntsModel.go()
