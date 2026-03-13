@@ -488,7 +488,9 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
       val newValue = scratch(i) + value * (sum / numBits - scratch(i))
       patches(i).setVar(varName, newValue)
+
     }
+
   }
 
   def forward(turtle: Turtle, units: Double): Unit = {
