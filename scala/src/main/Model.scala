@@ -1,8 +1,9 @@
-import org.nlogo.api.MersenneTwisterFast
-
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{ BufferedWriter, FileWriter }
 
 import scala.collection.mutable.{ ArrayBuffer, Map => MMap }
+
+import org.nlogo.api.MersenneTwisterFast
+
 
 val RNG: MersenneTwisterFast = new MersenneTwisterFast()
 
