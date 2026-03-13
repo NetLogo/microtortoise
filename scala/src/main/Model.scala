@@ -249,25 +249,33 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
 
   def rotate(degrees: Double): Unit = {
 
-    heading = (heading + degrees + 360.0) % 360.0
-    recomputeDXY()
+    val newHeading = (heading + degrees + 360.0) % 360.0
 
-    val mapping = TurtleKey.Heading -> heading
-    Updater.turtles.get(who).fold {
-      Updater.turtles += who -> MMap(mapping)
-    } {
-      _ += mapping
+    if (heading != newHeading) {
+
+      heading = newHeading
+      recomputeDXY()
+
+      val mapping = TurtleKey.Heading -> heading
+      Updater.turtles.get(who).fold {
+        Updater.turtles += who -> MMap(mapping)
+      } {
+        _ += mapping
+      }
+
     }
 
   }
 
   def setColor(value: Double): Unit = {
-    color = value
-    val mapping = TurtleKey.Color -> color
-    Updater.turtles.get(who).fold {
-      Updater.turtles += who -> MMap(mapping)
-    } {
-      _ += mapping
+    if (color != value) {
+      color = value
+      val mapping = TurtleKey.Color -> color
+      Updater.turtles.get(who).fold {
+        Updater.turtles += who -> MMap(mapping)
+      } {
+        _ += mapping
+      }
     }
   }
 
@@ -344,12 +352,14 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
     variables(name)
 
   def setColor(value: Double): Unit = {
-    pcolor = value
-    val mapping = PatchKey.PColor -> pcolor
-    Updater.patches.get(idNum).fold {
-      Updater.patches += idNum -> MMap(mapping)
-    } {
-      _ += mapping
+    if (pcolor != value) {
+      pcolor = value
+      val mapping = PatchKey.PColor -> pcolor
+      Updater.patches.get(idNum).fold {
+        Updater.patches += idNum -> MMap(mapping)
+      } {
+        _ += mapping
+      }
     }
   }
 

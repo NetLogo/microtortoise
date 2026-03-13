@@ -176,14 +176,18 @@ class Turtle extends Agent {
   }
 
   public rotate(degrees: number): void {
-    this.heading = (this.heading + (degrees + 360)) % 360;
-    this.recomputeDXY();
-    (Updater.turtles[this.who] ??= {} as TurtleUpdate).heading = this.heading;
+    const newHeading = (this.heading + (degrees + 360)) % 360;
+    if (this.heading !== newHeading) {
+      this.recomputeDXY();
+      (Updater.turtles[this.who] ??= {} as TurtleUpdate).heading = this.heading;
+    }
   }
 
   public setColor(value: number): void {
-    this.color = value;
-    (Updater.turtles[this.who] ??= {} as TurtleUpdate).color = value;
+    if (this.color !== value) {
+      this.color = value;
+      (Updater.turtles[this.who] ??= {} as TurtleUpdate).color = value;
+    }
   }
 
   public setSize(value: number): void {
@@ -266,8 +270,10 @@ class Patch extends Agent {
   }
 
   public setColor(value: number): void {
-    this.pcolor = value;
-    (Updater.patches[this.id] ??= {} as PatchUpdate).pcolor = value;
+    if (this.pcolor !== value) {
+      this.pcolor = value;
+      (Updater.patches[this.id] ??= {} as PatchUpdate).pcolor = value;
+    }
   }
 
   public setVar(name: string, value: NetLogoValue): void {
