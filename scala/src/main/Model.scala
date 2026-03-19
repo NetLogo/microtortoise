@@ -442,12 +442,17 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
     }
   }
 
+  private val scratch: Array[Double] = new Array(patches.length)
+
   def diffuse(varName: PatchVar, value: Double): Unit = {
 
     val xx = worldWidth
 
-    val scratch: Array[Double] = patches.map(p => p.getVar(varName).asInstanceOf[Double])
     val numPatches = scratch.length
+
+    for (i <- 0 until numPatches) {
+      scratch(i) = patches(i).getVar(varName).asInstanceOf[Double]
+    }
 
     for (i <- 0 until numPatches) {
 
