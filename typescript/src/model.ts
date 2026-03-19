@@ -292,17 +292,18 @@ class AgentSet<T extends Agent> {
   }
 
   public ask(f: (self: T) => void): void {
-    let i = 0;
-    while (i < this.agents.length) {
-      if (i < this.agents.length - 1) {
-        const randNum = i + window.RNG.nextInt(this.agents.length - i);
-        f(this.agents[randNum]!);
-        this.agents[randNum] = this.agents[i]!;
-      } else {
-        f(this.agents[i]!);
-      }
-      i++;
+
+    for (let i = this.agents.length - 1; i > 0; i--) {
+      const j = window.RNG.nextInt(i + 1);
+      const tmp = this.agents[i]!;
+      this.agents[i] = this.agents[j]!;
+      this.agents[j] = tmp;
     }
+
+    for (let i = 0; i < this.agents.length; i++) {
+      f(this.agents[i]!);
+    }
+
   }
 
   public size(): number {

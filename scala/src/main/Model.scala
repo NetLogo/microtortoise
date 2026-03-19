@@ -357,17 +357,22 @@ class AgentSet[T <: Agent](xs: Array[T]) {
   private val agents: Array[T] = xs.clone()
 
   def ask(f: T => Unit): Unit = {
-    var i = 0
-    while (i < agents.length) {
-      if (i < agents.length - 1) {
-        val randNum = i + RNG.nextInt(agents.length - i)
-        f(agents(randNum))
-        agents(randNum) = agents(i)
-      } else {
-        f(agents(i))
-      }
-      i += 1
+
+    var i = agents.length - 1
+    while (i > 0) {
+      val j     = RNG.nextInt(i + 1)
+      val tmp   = agents(i)
+      agents(i) = agents(j)
+      agents(j) = tmp
+      i -= 1
     }
+
+    var k = 0
+    while (k < agents.length) {
+      f(agents(k))
+      k += 1
+    }
+
   }
 
   def size: Int =
