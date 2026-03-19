@@ -178,6 +178,7 @@ class Turtle extends Agent {
   public rotate(degrees: number): void {
     const newHeading = (this.heading + (degrees + 360)) % 360;
     if (this.heading !== newHeading) {
+      this.heading = newHeading;
       this.recomputeDXY();
       (Updater.turtles[this.who] ??= {} as TurtleUpdate).heading = this.heading;
     }
