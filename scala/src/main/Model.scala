@@ -258,11 +258,7 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
       recomputeDXY()
 
       val mapping = TurtleKey.Heading -> heading
-      Updater.turtles.get(who).fold {
-        Updater.turtles += who -> MMap(mapping)
-      } {
-        _ += mapping
-      }
+      Updater.turtles.getOrElseUpdate(who, MMap.empty) += mapping
 
     }
 
@@ -272,22 +268,14 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
     if (color != value) {
       color = value
       val mapping = TurtleKey.Color -> color
-      Updater.turtles.get(who).fold {
-        Updater.turtles += who -> MMap(mapping)
-      } {
-        _ += mapping
-      }
+      Updater.turtles.getOrElseUpdate(who, MMap.empty) += mapping
     }
   }
 
   def setSize(value: Double): Unit = {
     size = value
     val mapping = TurtleKey.Size -> size
-    Updater.turtles.get(who).fold {
-      Updater.turtles += who -> MMap(mapping)
-    } {
-      _ += mapping
-    }
+    Updater.turtles.getOrElseUpdate(who, MMap.empty) += mapping
   }
 
   def setVar(name: String, value: Any): Unit = {
@@ -356,11 +344,7 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
     if (pcolor != value) {
       pcolor = value
       val mapping = PatchKey.PColor -> pcolor
-      Updater.patches.get(idNum).fold {
-        Updater.patches += idNum -> MMap(mapping)
-      } {
-        _ += mapping
-      }
+      Updater.patches.getOrElseUpdate(idNum, MMap.empty) += mapping
     }
   }
 
@@ -579,11 +563,7 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
   def resetTicks(): Unit = {
     ticks = 0
     val mapping = WorldKey.Ticks -> ticks
-    Updater.world.get(0).fold {
-      Updater.world += 0 -> MMap(mapping)
-    } {
-      _ += mapping
-    }
+    Updater.world.getOrElseUpdate(0, MMap.empty) += mapping
   }
 
   def setDefaultTurtleShape(shapeName: String): Unit = {
@@ -597,11 +577,7 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
   def tick(): Unit = {
     ticks += 1
     val mapping = WorldKey.Ticks -> ticks
-    Updater.world.get(0).fold {
-      Updater.world += 0 -> MMap(mapping)
-    } {
-      _ += mapping
-    }
+    Updater.world.getOrElseUpdate(0, MMap.empty) += mapping
   }
 
 }
