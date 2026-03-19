@@ -5,6 +5,17 @@ import scala.collection.mutable.{ ArrayBuffer, Map => MMap }
 import org.nlogo.api.MersenneTwisterFast
 
 
+enum GlobalVar {
+  case Population, DiffusionRate, EvaporationRate
+}
+
+enum PatchVar {
+  case Chemical, Food, IsNest, NestScent, FoodSourceNum
+}
+
+import GlobalVar.*
+import PatchVar.*
+
 val RNG: MersenneTwisterFast = new MersenneTwisterFast()
 
 object Json {
@@ -211,8 +222,6 @@ trait Agent
 
 class Turtle(val who: Int, shapeName: String) extends Agent {
 
-  private val variables: MMap[String, Any] = MMap.empty
-
   var dx:      Double = -1.0
   var dy:      Double = -1.0
   var color:   Double = Random.oneOf(ColorModel.BaseColors)
@@ -245,9 +254,6 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
   def ask(f: Turtle => Unit): Unit =
     f(this)
 
-  def getVar(name: String): Any =
-    variables(name)
-
   def rotate(degrees: Double): Unit = {
 
     val newHeading = (heading + degrees + 360.0) % 360.0
@@ -278,10 +284,6 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
     Updater.turtles.getOrElseUpdate(who, MMap.empty) += mapping
   }
 
-  def setVar(name: String, value: Any): Unit = {
-    variables(name) = value
-  }
-
   private def recomputeDXY(): Unit = {
 
     val rads  = heading * math.Pi / 180.0
@@ -295,15 +297,11 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
 
 }
 
-class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) extends Agent {
+class Patch(idNum: Int, val pxcor: Int, val pycor: Int) extends Agent {
 
-  private val variables: MMap[String, Any] = MMap.empty
+  private val variables: Array[Any] = new Array(PatchVar.values.length)
 
   var pcolor: Double = 0.0
-
-  for (v <- vars) {
-    variables(v) = 0.0
-  }
 
   Updater.patches(idNum) = {
     import PatchKey.*
@@ -322,8 +320,8 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
 
     pcolor = 0.0
 
-    for (k <- variables.keys) {
-      variables(k) = 0.0
+    for (n <- 0 until variables.length) {
+      variables(n) = 0.0
     }
 
     Updater.patches(idNum) =
@@ -337,8 +335,8 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
 
   }
 
-  def getVar(name: String): Any =
-    variables(name)
+  def getVar(name: PatchVar): Any =
+    variables(name.ordinal)
 
   def setColor(value: Double): Unit = {
     if (pcolor != value) {
@@ -348,8 +346,8 @@ class Patch(idNum: Int, vars: Array[String], val pxcor: Int, val pycor: Int) ext
     }
   }
 
-  def setVar(name: String, value: Any): Unit = {
-    variables(name) = value
+  def setVar(name: PatchVar, value: Any): Unit = {
+    variables(name.ordinal) = value
   }
 
 }
@@ -380,16 +378,11 @@ class AgentSet[T <: Agent](xs: Array[T]) {
 type TurtleSet = AgentSet[Turtle]
 type PatchSet  = AgentSet[Patch]
 
-class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxcor: Int
-               , val maxPxcor: Int, val minPycor: Int, val maxPycor: Int) {
+class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val maxPycor: Int) {
 
   private var dtsName: String = "turtle"
 
-  private val globals: MMap[String, Any] = MMap.empty
-
-  for (v <- globalVars) {
-    globals(v) = 0.0
-  }
+  private val globals: Array[Any] = new Array(GlobalVar.values.length)
 
   val worldWidth:  Int = 1 + maxPxcor - minPxcor
   val worldHeight: Int = 1 + maxPycor - minPycor
@@ -400,7 +393,7 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
       y <- maxPycor to minPycor by -1
       x <- minPxcor to maxPxcor
     } {
-      buffer += new Patch(buffer.length, patchVars, x, y)
+      buffer += new Patch(buffer.length, x, y)
     }
     buffer.toArray
   }
@@ -449,7 +442,7 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
     }
   }
 
-  def diffuse(varName: String, value: Double): Unit = {
+  def diffuse(varName: PatchVar, value: Double): Unit = {
 
     val xx = worldWidth
 
@@ -508,8 +501,8 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
   }
 
-  def getGlobal(name: String): Any =
-    globals(name)
+  def getGlobal(name: GlobalVar): Any =
+    globals(name.ordinal)
 
   def patchAt(turtle: Turtle): Option[Patch] =
     patchAtCor(turtle.xcor, turtle.ycor)
@@ -570,8 +563,8 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
     dtsName = shapeName
   }
 
-  def setGlobal(name: String, value: Any): Unit = {
-    globals(name) = value
+  def setGlobal(name: GlobalVar, value: Any): Unit = {
+    globals(name.ordinal) = value
   }
 
   def tick(): Unit = {
@@ -584,19 +577,17 @@ class Workspace( globalVars: Array[String], patchVars: Array[String], val minPxc
 
 object AntsModel {
 
-  val globalVarNames = Array("population", "diffusion-rate", "evaporation-rate")
-  val patchVarNames  = Array("chemical", "food", "nest?", "nest-scent", "food-source-number")
-  val workspace      = new Workspace(globalVarNames, patchVarNames, -35, 35, -35, 35)
+  val workspace = new Workspace(-35, 35, -35, 35)
 
-  workspace.setGlobal(  "diffusion-rate",  50.0)
-  workspace.setGlobal("evaporation-rate",  10.0)
-  workspace.setGlobal(      "population", 125.0)
+  workspace.setGlobal(  DiffusionRate,  50.0)
+  workspace.setGlobal(EvaporationRate,  10.0)
+  workspace.setGlobal(     Population, 125.0)
 
   def setup(): Unit = {
     workspace.clearAll()
     workspace.setDefaultTurtleShape("bug")
     workspace.createTurtles(
-      workspace.getGlobal("population").asInstanceOf[Double].toInt,
+      workspace.getGlobal(Population).asInstanceOf[Double].toInt,
       (self: Turtle) => {
         self.setSize(  2.0)
         self.setColor(15.0)
@@ -616,37 +607,37 @@ object AntsModel {
   }
 
   def setupNest(self: Patch): Unit = {
-    self.setVar("nest?",              Box.distancexy(self, 0, 0) < 5)
-    self.setVar("nest-scent", 200.0 - Box.distancexy(self, 0, 0)    )
+    self.setVar(IsNest,            Box.distancexy(self, 0, 0) < 5)
+    self.setVar(NestScent, 200.0 - Box.distancexy(self, 0, 0)    )
   }
 
   def setupFood(self: Patch): Unit = {
     if (Box.distancexy(self, 0.6 * workspace.maxPxcor, 0) < 5) {
-      self.setVar("food-source-number", 1.0)
+      self.setVar(FoodSourceNum, 1.0)
     }
     if (Box.distancexy(self, -0.6 * workspace.maxPxcor, -0.6 * workspace.maxPycor) < 5) {
-      self.setVar("food-source-number", 2.0)
+      self.setVar(FoodSourceNum, 2.0)
     }
     if (Box.distancexy(self, -0.8 * workspace.maxPxcor, 0.8 * workspace.maxPycor) < 5) {
-      self.setVar("food-source-number", 3.0)
+      self.setVar(FoodSourceNum, 3.0)
     }
-    if (self.getVar("food-source-number").asInstanceOf[Double] > 0) {
-      self.setVar("food", Random.oneOf(Array(1.0, 2.0)))
+    if (self.getVar(FoodSourceNum).asInstanceOf[Double] > 0) {
+      self.setVar(Food, Random.oneOf(Array(1.0, 2.0)))
     }
   }
 
   def recolorPatch(self: Patch): Unit = {
-    if (self.getVar("nest?") == true) {
+    if (self.getVar(IsNest) == true) {
       self.setColor(115.0)
-    } else if (self.getVar("food").asInstanceOf[Double] > 0) {
-      self.getVar("food-source-number").asInstanceOf[Double].toInt match {
+    } else if (self.getVar(Food).asInstanceOf[Double] > 0) {
+      self.getVar(FoodSourceNum).asInstanceOf[Double].toInt match {
         case 1 => self.setColor(85.0)
         case 2 => self.setColor(95.0)
         case 3 => self.setColor(105.0)
         case n => System.err.println(s"Impossible food source number: $n")
       }
     } else {
-      val color = ColorModel.scaleColor(55.0, self.getVar("chemical").asInstanceOf[Double], 0.1, 5.0)
+      val color = ColorModel.scaleColor(55.0, self.getVar(Chemical).asInstanceOf[Double], 0.1, 5.0)
       self.setColor(color)
     }
   }
@@ -665,12 +656,12 @@ object AntsModel {
         }
     }
 
-    workspace.diffuse("chemical", workspace.getGlobal("diffusion-rate").asInstanceOf[Double] / 100.0)
+    workspace.diffuse(Chemical, workspace.getGlobal(DiffusionRate).asInstanceOf[Double] / 100.0)
 
-    val evapRate = workspace.getGlobal("evaporation-rate").asInstanceOf[Double]
+    val evapRate = workspace.getGlobal(EvaporationRate).asInstanceOf[Double]
     workspace.allPatches().ask {
       (self: Patch) =>
-        self.setVar("chemical", self.getVar("chemical").asInstanceOf[Double] * (100.0 - evapRate) / 100.0)
+        self.setVar(Chemical, self.getVar(Chemical).asInstanceOf[Double] * (100.0 - evapRate) / 100.0)
         recolorPatch(self)
     }
 
@@ -680,24 +671,24 @@ object AntsModel {
 
   def returnToNest(self: Turtle): Unit = {
     val patchHere = workspace.patchAt(self).get
-    if (patchHere.getVar("nest?") == true) {
+    if (patchHere.getVar(IsNest) == true) {
       self.setColor(15.0)
       self.rotate(180.0)
     } else {
-      patchHere.setVar("chemical", patchHere.getVar("chemical").asInstanceOf[Double] + 60.0)
+      patchHere.setVar(Chemical, patchHere.getVar(Chemical).asInstanceOf[Double] + 60.0)
       uphillNestScent(self)
     }
   }
 
   def lookForFood(self: Turtle): Unit = {
     val patchHere = workspace.patchAt(self).get
-    val food      = patchHere.getVar("food").asInstanceOf[Double]
+    val food      = patchHere.getVar(Food).asInstanceOf[Double]
     if (food > 0) {
       self.setColor(26.0)
-      patchHere.setVar("food", food - 1.0)
+      patchHere.setVar(Food, food - 1.0)
       self.rotate(180.0)
     } else {
-      val chem = patchHere.getVar("chemical").asInstanceOf[Double]
+      val chem = patchHere.getVar(Chemical).asInstanceOf[Double]
       if (chem >= 0.05 && chem < 2.0) {
         uphillChemical(self)
       }
@@ -734,11 +725,11 @@ object AntsModel {
 
   def nestScentAtAngle(turtle: Turtle, angle: Double): Double =
     workspace.patchRightAndAhead(turtle, angle, 1.0)
-      .fold(0.0)(_.getVar("nest-scent").asInstanceOf[Double])
+      .fold(0.0)(_.getVar(NestScent).asInstanceOf[Double])
 
   def chemicalAtAngle(turtle: Turtle, angle: Double): Double =
     workspace.patchRightAndAhead(turtle, angle, 1.0)
-      .fold(0.0)(_.getVar("chemical").asInstanceOf[Double])
+      .fold(0.0)(_.getVar(Chemical).asInstanceOf[Double])
 
 }
 
