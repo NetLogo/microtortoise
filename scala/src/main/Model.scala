@@ -421,8 +421,10 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
         )
   }
 
+  private val turtleArray = turtles.toArray
+
   def allPatches(): PatchSet  = new AgentSet(patches)
-  def allTurtles(): TurtleSet = new AgentSet(turtles.toArray)
+  def allTurtles(): TurtleSet = new AgentSet(turtleArray)
 
   def canMove(turtle: Turtle, distance: Double): Boolean =
     patchRightAndAhead(turtle, 0, distance).isDefined
