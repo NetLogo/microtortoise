@@ -1,6 +1,6 @@
 import java.io.{ BufferedWriter, FileWriter }
 
-import scala.collection.mutable.{ ArrayBuffer, Map => MMap }
+import scala.collection.mutable.{ ArrayBuffer, BitSet => MBitSet, Map => MMap }
 
 import org.nlogo.api.MersenneTwisterFast
 
@@ -220,7 +220,7 @@ object Random {
 
 trait Agent
 
-class Turtle(val who: Int, shapeName: String) extends Agent {
+class Turtle(val who: Int, shapeName: String, workspace: Workspace) extends Agent {
 
   var dx:      Double = -1.0
   var dy:      Double = -1.0
@@ -231,7 +231,10 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
   var xcor:    Double = 0.0
   var ycor:    Double = 0.0
 
+  val myLinks = ArrayBuffer[Unit]()
+
   recomputeDXY()
+  workspace.patchAtCor(xcor, ycor).get.trackTurtle(who)
 
   Updater.turtles(who) = {
     import TurtleKey.*
@@ -265,6 +268,12 @@ class Turtle(val who: Int, shapeName: String) extends Agent {
 
       val mapping = TurtleKey.Heading -> heading
       Updater.turtles.getOrElseUpdate(who, MMap.empty) += mapping
+
+      var i = 0
+      while (i < myLinks.size) {
+        // Would move any rigid link neighbors
+        i = i + 1
+      }
 
     }
 
@@ -302,6 +311,8 @@ class Patch(idNum: Int, val pxcor: Int, val pycor: Int) extends Agent {
   private val variables: Array[Any] = new Array(PatchVar.values.length)
 
   var pcolor: Double = 0.0
+
+  private var turtlesHere = MBitSet()
 
   Updater.patches(idNum) = {
     import PatchKey.*
@@ -348,6 +359,14 @@ class Patch(idNum: Int, val pxcor: Int, val pycor: Int) extends Agent {
 
   def setVar(name: PatchVar, value: Any): Unit = {
     variables(name.ordinal) = value
+  }
+
+  def trackTurtle(who: Int): Unit = {
+    turtlesHere += who
+  }
+
+  def untrackTurtle(who: Int): Unit = {
+    turtlesHere -= who
   }
 
 }
@@ -441,7 +460,7 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
 
   def createTurtles(num: Int, init: Turtle => Unit): Unit = {
     for (_ <- 0 until num) {
-      val t = new Turtle(turtles.length, dtsName)
+      val t = new Turtle(turtles.length, dtsName, this)
       t.ask(init)
       turtles += t
     }
@@ -493,10 +512,28 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
 
   def forward(turtle: Turtle, units: Double): Unit = {
 
-    if (canMove(turtle, units)) {
+    val startingPatch = patchAtCor(turtle.xcor, turtle.ycor).get
 
-      turtle.xcor += units * turtle.dx
-      turtle.ycor += units * turtle.dy
+    val isNeg     = units < 0
+    var remaining = Math.abs(units)
+
+    while (remaining > 0) {
+      val amount      = Math.min(1, remaining)
+      val finalAmount = if (isNeg) -amount else amount
+      if (canMove(turtle, finalAmount)) {
+        turtle.xcor += finalAmount * turtle.dx
+        turtle.ycor += finalAmount * turtle.dy
+      }
+      remaining = if (remaining < 1) 0 else remaining - 1
+    }
+
+    if (units != 0) {
+
+      var i = 0
+      while (i < turtle.myLinks.size) {
+        // Would move any rigid link neighbors
+        i = i + 1
+      }
 
       val mappingX = TurtleKey.Xcor -> turtle.xcor
       val mappingY = TurtleKey.Ycor -> turtle.ycor
@@ -507,6 +544,13 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
         _ ++= Seq(mappingX, mappingY)
       }
 
+    }
+
+    val endingPatch = patchAtCor(turtle.xcor, turtle.ycor).get
+
+    if (startingPatch != endingPatch) {
+      startingPatch.untrackTurtle(turtle.who)
+        endingPatch.  trackTurtle(turtle.who)
     }
 
   }
