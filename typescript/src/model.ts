@@ -73,12 +73,22 @@ const Updater = {
 
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const Box = {
-  distancexy: (patch: Patch, x: number, y: number): number => {
-    const shortX = Math.abs(patch.pxcor - x);
-    const shortY = Math.abs(patch.pycor - y);
+
+  distancexy: (patch: any, x: any, y: any): number => {
+
+    const p = (patch instanceof Patch) ? patch : boop();
+    const i = (typeof x === "number")  ?     x : boop();
+    const j = (typeof y === "number")  ?     y : boop();
+
+    const shortX = Math.abs(p.pxcor - i);
+    const shortY = Math.abs(p.pycor - j);
+
     return Math.sqrt((shortX ** 2) + (shortY ** 2));
+
   }
+
 };
 
 const ColorModel = {
@@ -153,7 +163,7 @@ class Turtle extends Agent {
     this.who     = w;
 
     this.recomputeDXY();
-    workspace.patchAtCor(this.xcor, this.ycor)!.trackTurtle(w);
+    ws.patchAtCor(this.xcor, this.ycor)!.trackTurtle(w);
 
     Updater.turtles[w] = {
       breed:         "turtles"
@@ -181,8 +191,9 @@ class Turtle extends Agent {
     return this.variables[name]!;
   }
 
-  public rotate(degrees: number): void {
-    const newHeading = (this.heading + (degrees + 360)) % 360;
+  public rotate(degrees: any): void {
+    const d          = (typeof degrees === "number") ? degrees : boop();
+    const newHeading = (this.heading + (d + 360)) % 360;
     if (this.heading !== newHeading) {
       this.heading = newHeading;
       this.recomputeDXY();
@@ -400,8 +411,15 @@ class Workspace {
     return new AgentSet(this.turtles);
   }
 
-  public canMove(turtle: Turtle, distance: number): boolean {
-    return this.patchRightAndAhead(turtle, 0, distance) !== undefined;
+  public static ask(askee: any, block: any): void {
+    const asky = (askee instanceof AgentSet) ? askee : boop();
+    asky.ask(block); // eslint-disable-line @typescript-eslint/no-unsafe-argument
+  }
+
+  public canMove(turtle: any, distance: any): boolean {
+    const t = (turtle instanceof Turtle)     ?   turtle : boop();
+    const d = (typeof distance === "number") ? distance : boop();
+    return this.patchRightAndAhead(t, 0.0, d) !== undefined;
   }
 
   public clearAll(): void {
@@ -414,22 +432,26 @@ class Workspace {
 
   }
 
-  public createTurtles(num: number, init: (self: Turtle) => void): void {
-    for (let i = 0; i < num; i++) {
+  public createTurtles(num: any, init: any): void {
+    const n = (typeof num === "number") ? num : boop();
+    for (let i = 0; i < n; i++) {
       const turtle = new Turtle(this.turtles.length, this.dtsName, this);
-      turtle.ask(init);
+      turtle.ask(init as (self: Turtle) => void);
       this.turtles.push(turtle);
     }
   }
 
-  public diffuse(varName: string, value: number): void {
+  public diffuse(varName: any, value: any): void {
+
+    const vn = (typeof varName === "string") ? varName : boop();
+    const  v = (typeof   value === "number") ?   value : boop();
 
     const xx = this.worldWidth;
 
     const scratch: Array<number> = [];
 
     for (const patch of this.patches) {
-      scratch.push(patch.getVar(varName) as number);
+      scratch.push(patch.getVar(vn) as number);
     }
 
     const numPatches = scratch.length;
@@ -502,45 +524,48 @@ class Workspace {
         numBits += 1;
       }
 
-      const newValue = scratch[i]! + value * (sum / numBits - scratch[i]!);
-      this.patches[i]!.setVar(varName, newValue);
+      const newValue = scratch[i]! + v * (sum / numBits - scratch[i]!);
+      this.patches[i]!.setVar(vn, newValue);
 
     }
     /* eslint-enable no-bitwise */
 
   }
 
-  public forward(turtle: Turtle, units: number): void {
+  public forward(turtle: any, units: any): void {
 
-    const startingPatch = this.patchAtCor(turtle.xcor, turtle.ycor)!;
+    const t  = (turtle instanceof Turtle)  ? turtle : boop();
+    const us = (typeof units === "number") ?  units : boop();
 
-    const isNeg = units < 0;
+    const startingPatch = this.patchAtCor(t.xcor, t.ycor)!;
 
-    let remaining = Math.abs(units);
+    const isNeg = us < 0;
+
+    let remaining = Math.abs(us);
 
     while (remaining > 0) {
       const amount      = Math.min(1, remaining);
       const finalAmount = isNeg ? -amount : amount;
-      if (this.canMove(turtle, finalAmount)) {
-        turtle.xcor += finalAmount * turtle.dx;
-        turtle.ycor += finalAmount * turtle.dy;
+      if (this.canMove(t, finalAmount)) {
+        t.xcor += finalAmount * t.dx;
+        t.ycor += finalAmount * t.dy;
       }
       remaining = (remaining < 1) ? 0 : (remaining - 1);
     }
 
-    if (units !== 0) {
-      Updater.turtles[turtle.who] ??= {} as TurtleUpdate;
-      Updater.turtles[turtle.who]!.xcor = turtle.xcor;
-      Updater.turtles[turtle.who]!.ycor = turtle.ycor;
+    if (us !== 0) {
+      Updater.turtles[t.who] ??= {} as TurtleUpdate;
+      Updater.turtles[t.who]!.xcor = t.xcor;
+      Updater.turtles[t.who]!.ycor = t.ycor;
       let i = 0;
-      while (i++ < turtle.myLinks.length) { /* Would move any rigid link neighbors */ }
+      while (i++ < t.myLinks.length) { /* Would move any rigid link neighbors */ }
     }
 
-    const endingPatch = this.patchAtCor(turtle.xcor, turtle.ycor)!;
+    const endingPatch = this.patchAtCor(t.xcor, t.ycor)!;
 
     if (startingPatch !== endingPatch) {
-      startingPatch.untrackTurtle(turtle.who);
-        endingPatch.  trackTurtle(turtle.who);
+      startingPatch.untrackTurtle(t.who);
+        endingPatch.  trackTurtle(t.who);
     }
 
   }
@@ -587,16 +612,20 @@ class Workspace {
 
   }
 
-  public patchRightAndAhead(turtle: Turtle, angle: number, dist: number): Patch | undefined {
+  public patchRightAndAhead(turtle: any, angle: any, dist: any): Patch | undefined {
 
-    const trueAngle = (turtle.heading + angle) % 360;
+    const t = (turtle instanceof Turtle)  ? turtle : boop();
+    const a = (typeof angle === "number") ?  angle : boop();
+    const d = (typeof  dist === "number") ?   dist : boop();
+
+    const trueAngle = (t.heading + a) % 360;
 
     const rads = trueAngle * Math.PI / 180;
     const dx   = Math.sin(rads);
     const dy   = Math.cos(rads);
 
-    const x = turtle.xcor + dist * ((Math.abs(dx) < 3.2e-15) ? 0 : dx);
-    const y = turtle.ycor + dist * ((Math.abs(dy) < 3.2e-15) ? 0 : dy);
+    const x = t.xcor + d * ((Math.abs(dx) < 3.2e-15) ? 0 : dx);
+    const y = t.ycor + d * ((Math.abs(dy) < 3.2e-15) ? 0 : dy);
 
     return this.patchAtCor(x, y);
 
@@ -607,8 +636,9 @@ class Workspace {
     (Updater.world[0] ??= {} as WorldUpdate).ticks = this.ticks;
   }
 
-  public setDefaultTurtleShape(shapeName: string): void {
-    this.dtsName = shapeName;
+  public setDefaultTurtleShape(shapeName: any): void {
+    const sn = (typeof shapeName === "string") ? shapeName : boop();
+    this.dtsName = sn;
   }
 
   public setGlobal(name: string, value: NetLogoValue): void {
@@ -635,7 +665,7 @@ workspace.setGlobal(      "population", 125);
 const setup = (): void => {
   workspace.clearAll();
   workspace.setDefaultTurtleShape("bug");
-  workspace.createTurtles(workspace.getGlobal("population") as number, (self: Turtle) => {
+  workspace.createTurtles(workspace.getGlobal("population"), (self: Turtle) => {
     self.setSize(2);
     self.setColor(15);
   });
@@ -644,8 +674,9 @@ const setup = (): void => {
 };
 
 const setupPatches = (): void => {
-  workspace.allPatches().ask(
-    (self: Patch) => {
+  Workspace.ask(
+    workspace.allPatches()
+  , (self: Patch) => {
       setupNest(self);
       setupFood(self);
       recolorPatch(self);
@@ -654,83 +685,95 @@ const setupPatches = (): void => {
 };
 
 const setupNest = (self: Patch): void => {
-  self.setVar("nest?"     ,       Box.distancexy(self, 0, 0) < 5);
-  self.setVar("nest-scent", 200 - Box.distancexy(self, 0, 0));
+  self.setVar("nest?"     , lessThan(     Box.distancexy(self, 0, 0), 5));
+  self.setVar("nest-scent",    minus(200, Box.distancexy(self, 0, 0)   ));
 };
 
 const setupFood = (self: Patch): void => {
 
-  if (Box.distancexy(self, 0.6 * workspace.maxPxcor, 0) < 5) {
-    self.setVar("food-source-number", 1);
-  }
+  badIf (
+    lessThan(Box.distancexy(self, times(0.6, workspace.maxPxcor), 0), 5)
+  , () => {
+      self.setVar("food-source-number", 1);
+    }
+  );
 
-  if (Box.distancexy(self, -0.6 * workspace.maxPxcor, -0.6 * workspace.maxPycor) < 5) {
-    self.setVar("food-source-number", 2);
-  }
+  badIf (
+    lessThan(Box.distancexy(self, -times(0.6, workspace.maxPxcor), times(-0.6, workspace.maxPycor)), 5)
+  , () => {
+      self.setVar("food-source-number", 2);
+    }
+  );
 
-  if (Box.distancexy(self, -0.8 * workspace.maxPxcor, 0.8 * workspace.maxPycor) < 5) {
-    self.setVar("food-source-number", 3);
-  }
+  badIf (
+    lessThan(Box.distancexy(self, -times(0.8, workspace.maxPxcor), times(0.8, workspace.maxPycor)), 5)
+  , () => {
+      self.setVar("food-source-number", 3);
+    }
+  );
 
-  if ((self.getVar("food-source-number") as number) > 0) {
-    self.setVar("food", Random.oneOf([1, 2]));
-  }
+  badIf (greaterThan(self.getVar("food-source-number"), 0), () => {
+      self.setVar("food", Random.oneOf([1, 2]));
+    }
+  );
 
 };
 
 const recolorPatch = (self: Patch): void => {
-  if (self.getVar("nest?") === true) {
-    self.setColor(115);
-  } else if ((self.getVar("food") as number) > 0) {
-    switch (self.getVar("food-source-number") as number) {
-      case 1: {
-        self.setColor(85);
-        break;
-      }
-      case 2: {
-        self.setColor(95);
-        break;
-      }
-      case 3: {
-        self.setColor(105);
-        break;
-      }
-      default:
-        console.error("Impossible food source number");
+  badIfElse (
+    self.getVar("nest?") === true
+  , () => {
+      self.setColor(115);
     }
-  } else {
-    const color = ColorModel.scaleColor(55, self.getVar("chemical") as number, 0.1, 5);
-    self.setColor(color);
-  }
+  , () => {
+      badIfElse (greaterThan(self.getVar("food"), 0)
+      , () => {
+          const fsn = self.getVar("food-source-number");
+          badIf (nlEquals(fsn, 1.0), () => { self.setColor( 85.0); });
+          badIf (nlEquals(fsn, 2.0), () => { self.setColor( 95.0); });
+          badIf (nlEquals(fsn, 3.0), () => { self.setColor(105.0); });
+        }
+      , () => {
+          const color = ColorModel.scaleColor(55, self.getVar("chemical") as number, 0.1, 5);
+          self.setColor(color);
+        }
+      );
+    }
+  );
 };
 
 const go = (): void => {
 
-  workspace.allTurtles().ask(
-    (self: Turtle) => {
+  Workspace.ask(
+    workspace.allTurtles()
+  , (self: Turtle) => {
 
-      if (self.who < workspace.ticks) {
-
-        if (self.color === 15) {
-          lookForFood(self);
-        } else {
-          returnToNest(self);
+      badIf (
+        lessThan(self.who, workspace.ticks)
+      , () => {
+          badIfElse (nlEquals(self.color, 15)
+          , () => {
+              lookForFood(self);
+            }
+          , () => {
+              returnToNest(self);
+            }
+          );
+          wiggle(self);
+          workspace.forward(self, 1);
         }
-
-        wiggle(self);
-        workspace.forward(self, 1);
-
-      }
+      );
 
     }
   );
 
-  workspace.diffuse("chemical", (workspace.getGlobal("diffusion-rate") as number) / 100);
+  workspace.diffuse("chemical", div(workspace.getGlobal("diffusion-rate"), 100));
 
-  const evapRate = workspace.getGlobal("evaporation-rate") as number;
-  workspace.allPatches().ask(
-    (self: Patch) => {
-      self.setVar("chemical", (self.getVar("chemical") as number) * (100 - evapRate) / 100);
+  const evapRate = workspace.getGlobal("evaporation-rate");
+  Workspace.ask(
+    workspace.allPatches()
+  , (self: Patch) => {
+      self.setVar("chemical", times(self.getVar("chemical"), div(minus(100, evapRate), 100)));
       recolorPatch(self);
     }
   );
@@ -741,25 +784,40 @@ const go = (): void => {
 
 const returnToNest = (self: Turtle): void => {
   const patchHere = workspace.patchAt(self)!;
-  if (patchHere.getVar("nest?") === true) {
-    self.setColor(15);
-    self.rotate(180);
-  } else {
-    patchHere.setVar("chemical", (patchHere.getVar("chemical") as number) + 60);
-    uphillNestScent(self);
-  }
+  badIfElse (
+    patchHere.getVar("nest?") === true
+  , () => {
+      self.setColor(15);
+      self.rotate(180);
+    }
+  , () => {
+      patchHere.setVar("chemical", plus(patchHere.getVar("chemical"), 60));
+      uphillNestScent(self);
+    }
+  );
 };
 
 const lookForFood = (self: Turtle): void => {
   const patchHere = workspace.patchAt(self)!;
-  const food      = patchHere.getVar("food") as number;
-  if (food > 0) {
-    self.setColor(26);
-    patchHere.setVar("food", food - 1);
-    self.rotate(180);
-  } else if ((patchHere.getVar("chemical") as number) >= 0.05 && (patchHere.getVar("chemical") as number) < 2) {
-    uphillChemical(self);
-  }
+  const food      = patchHere.getVar("food");
+  badIfElse (
+    greaterThan(food, 0)
+  , () => {
+      self.setColor(26);
+      patchHere.setVar("food", minus(food, 1));
+      self.rotate(180);
+    }
+  , () => {
+      badIf (
+        and( greaterThanOrEqual(patchHere.getVar("chemical"), 0.05)
+           , lessThan(patchHere.getVar("chemical"), 2)
+           )
+      , () => {
+          uphillChemical(self);
+        }
+      );
+    }
+  );
 };
 
 const uphillChemical = (self: Turtle): void => {
@@ -768,9 +826,19 @@ const uphillChemical = (self: Turtle): void => {
   const scentRight = chemicalAtAngle(self,  45);
   const scentLeft  = chemicalAtAngle(self, -45);
 
-  if ((scentRight > scentAhead) || (scentLeft > scentAhead)) {
-    self.rotate(scentRight > scentLeft ? 45 : -45);
-  }
+  let deg = 0;
+
+  badIf (
+    or(greaterThan(scentRight, scentAhead), greaterThan(scentLeft, scentAhead))
+  , () => {
+      badIfElse ( greaterThan(scentRight, scentLeft)
+                , () => { deg =  45; }
+                , () => { deg = -45; }
+                );
+    }
+  );
+
+  self.rotate(deg);
 
 };
 
@@ -780,28 +848,137 @@ const uphillNestScent = (self: Turtle): void => {
   const scentRight = nestScentAtAngle(self,  45);
   const scentLeft  = nestScentAtAngle(self, -45);
 
-  if ((scentRight > scentAhead) || (scentLeft > scentAhead)) {
-    self.rotate(scentRight > scentLeft ? 45 : -45);
-  }
+  let deg = 0;
+
+  badIf (
+    or(greaterThan(scentRight, scentAhead), greaterThan(scentLeft, scentAhead))
+  , () => {
+      badIfElse ( greaterThan(scentRight, scentLeft)
+                , () => { deg =  45; }
+                , () => { deg = -45; }
+                );
+    }
+  );
+
+  self.rotate(deg);
 
 };
 
 const wiggle = (self: Turtle): void => {
   self.rotate( window.RNG.nextInt(40));
   self.rotate(-window.RNG.nextInt(40));
-  if (!workspace.canMove(self, 1)) {
-    self.rotate(180);
-  }
+  const canInFactMove = workspace.canMove(self, 1) as any; // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+  const yesCanMove    = (typeof canInFactMove === "boolean") ? canInFactMove : boop();
+  badIf(
+    not(yesCanMove)
+  , () => {
+      self.rotate(180);
+    }
+  );
 };
 
 const nestScentAtAngle = (turtle: Turtle, angle: number): number => {
   const p = workspace.patchRightAndAhead(turtle, angle, 1);
-  return (p !== undefined) ? p.getVar("nest-scent") as number : 0;
+  if (p instanceof Patch) {
+    return p.getVar("nest-scent") as number;
+  } else {
+    return 0;
+  };
 };
 
 const chemicalAtAngle = (turtle: Turtle, angle: number): number => {
   const p = workspace.patchRightAndAhead(turtle, angle, 1);
-  return (p !== undefined) ? p.getVar("chemical") as number : 0;
+  if (p instanceof Patch) {
+    return p.getVar("chemical") as number;
+  } else {
+    return 0;
+  };
 };
+
+const boop = (): never => {
+  throw new Error("Boop!");
+};
+
+const and = (x: any, y: any): boolean => {
+  const i = (typeof x === "boolean") ? x : boop();
+  const j = (typeof y === "boolean") ? y : boop();
+  return i && j;
+};
+
+const badIf = (pred: any, block: () => any): void => {
+  const cond = (typeof pred === "boolean") ? pred : boop();
+  if (cond) {
+    block();
+  }
+};
+
+const badIfElse = (pred: any, block1: () => any, block2: () => any): void => {
+  const cond = (typeof pred === "boolean") ? pred : boop();
+  if (cond) {
+    block1();
+  } else {
+    block2();
+  }
+};
+
+const div = (x: any, y: any): number => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i / j;
+};
+
+const greaterThan = (x: any, y: any): boolean => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i > j;
+};
+
+const greaterThanOrEqual = (x: any, y: any): boolean => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i >= j;
+};
+
+const lessThan = (x: any, y: any): boolean => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i < j;
+};
+
+const minus = (x: any, y: any): number => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i - j;
+};
+
+const nlEquals = (x: any, y: any): boolean => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i === j;
+};
+
+const not = (x: any): boolean => {
+  const y = (typeof x === "boolean") ? x : boop();
+  return !y;
+};
+
+const or = (x: any, y: any): boolean => {
+  const i = (typeof x === "boolean") ? x : boop();
+  const j = (typeof y === "boolean") ? y : boop();
+  return i || j;
+};
+
+const plus = (x: any, y: any): number => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i + j;
+};
+
+const times = (x: any, y: any): number => {
+  const i = (typeof x === "number") ? x : boop();
+  const j = (typeof y === "number") ? y : boop();
+  return i * j;
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export { setup, go, Updater };
