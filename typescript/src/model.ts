@@ -125,10 +125,13 @@ class Agent {
 
 class Turtle extends Agent {
 
+  private readonly workspace: Workspace;
+
   private variables: Record<string, NetLogoValue> = {};
 
-  public dx: number = -1;
-  public dy: number = -1;
+  public dx:      number      = -1;
+  public dy:      number      = -1;
+  public myLinks: Array<void> = [];
 
   public color:   number =  0;
   public heading: number = -1;
@@ -138,9 +141,11 @@ class Turtle extends Agent {
   public xcor:    number =  0;
   public ycor:    number =  0;
 
-  public constructor(w: number, shapeName: string) {
+  public constructor(w: number, shapeName: string, ws: Workspace) {
 
     super();
+
+    this.workspace = ws;
 
     this.color   = Random.oneOf(ColorModel.BaseColors);
     this.heading = window.RNG.nextInt(360);
@@ -148,6 +153,7 @@ class Turtle extends Agent {
     this.who     = w;
 
     this.recomputeDXY();
+    workspace.patchAtCor(this.xcor, this.ycor)!.trackTurtle(w);
 
     Updater.turtles[w] = {
       breed:         "turtles"
@@ -181,6 +187,8 @@ class Turtle extends Agent {
       this.heading = newHeading;
       this.recomputeDXY();
       (Updater.turtles[this.who] ??= {} as TurtleUpdate).heading = this.heading;
+      let i = 0;
+      while (i++ < this.myLinks.length) { /* Would move any rigid link neighbors */ }
     }
   }
 
@@ -214,6 +222,8 @@ class Turtle extends Agent {
 }
 
 class Patch extends Agent {
+
+  private readonly turtlesHere = new Set<number>();
 
   private variables: Record<string, NetLogoValue> = {};
 
@@ -280,6 +290,15 @@ class Patch extends Agent {
   public setVar(name: string, value: NetLogoValue): void {
     this.variables[name] = value;
   }
+
+  public trackTurtle(who: number): void {
+    this.turtlesHere.add(who);
+  }
+
+  public untrackTurtle(who: number): void {
+    this.turtlesHere.delete(who);
+  }
+
 
 }
 
@@ -397,7 +416,7 @@ class Workspace {
 
   public createTurtles(num: number, init: (self: Turtle) => void): void {
     for (let i = 0; i < num; i++) {
-      const turtle = new Turtle(this.turtles.length, this.dtsName);
+      const turtle = new Turtle(this.turtles.length, this.dtsName, this);
       turtle.ask(init);
       this.turtles.push(turtle);
     }
@@ -493,15 +512,35 @@ class Workspace {
 
   public forward(turtle: Turtle, units: number): void {
 
-    if (this.canMove(turtle, units)) {
+    const startingPatch = this.patchAtCor(turtle.xcor, turtle.ycor)!;
 
-      turtle.xcor += units * turtle.dx;
-      turtle.ycor += units * turtle.dy;
+    const isNeg = units < 0;
 
+    let remaining = Math.abs(units);
+
+    while (remaining > 0) {
+      const amount      = Math.min(1, remaining);
+      const finalAmount = isNeg ? -amount : amount;
+      if (this.canMove(turtle, finalAmount)) {
+        turtle.xcor += finalAmount * turtle.dx;
+        turtle.ycor += finalAmount * turtle.dy;
+      }
+      remaining = (remaining < 1) ? 0 : (remaining - 1);
+    }
+
+    if (units !== 0) {
       Updater.turtles[turtle.who] ??= {} as TurtleUpdate;
       Updater.turtles[turtle.who]!.xcor = turtle.xcor;
       Updater.turtles[turtle.who]!.ycor = turtle.ycor;
+      let i = 0;
+      while (i++ < turtle.myLinks.length) { /* Would move any rigid link neighbors */ }
+    }
 
+    const endingPatch = this.patchAtCor(turtle.xcor, turtle.ycor)!;
+
+    if (startingPatch !== endingPatch) {
+      startingPatch.untrackTurtle(turtle.who);
+        endingPatch.  trackTurtle(turtle.who);
     }
 
   }
