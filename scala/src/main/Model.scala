@@ -167,11 +167,33 @@ object Updater {
 }
 
 object Box {
-  def distancexy(patch: Patch, x: Double, y: Double): Double = {
-    val shortX = math.abs(patch.pxcor - x)
-    val shortY = math.abs(patch.pycor - y)
+
+  def distancexy(patch: Any, x: Any, y: Any): Double = {
+
+    val p =
+      patch match {
+        case p: Patch => p
+        case _        => throw new Exception("Boop!")
+      }
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    val shortX = math.abs(p.pxcor - i)
+    val shortY = math.abs(p.pycor - j)
     math.sqrt(shortX * shortX + shortY * shortY)
+
   }
+
 }
 
 object ColorModel {
@@ -257,9 +279,15 @@ class Turtle(val who: Int, shapeName: String, workspace: Workspace) extends Agen
   def ask(f: Turtle => Unit): Unit =
     f(this)
 
-  def rotate(degrees: Double): Unit = {
+  def rotate(degrees: Any): Unit = {
 
-    val newHeading = (heading + degrees + 360.0) % 360.0
+    val d =
+      degrees match {
+        case d: Double => d
+        case _         => throw new Exception("Boop!")
+      }
+
+    val newHeading = (heading + d + 360.0) % 360.0
 
     if (heading != newHeading) {
 
@@ -448,8 +476,29 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
   def allPatches(): PatchSet  = new AgentSet(patches)
   def allTurtles(): TurtleSet = new AgentSet(turtles.toArray)
 
-  def canMove(turtle: Turtle, distance: Double): Boolean =
-    patchRightAndAhead(turtle, 0, distance).isDefined
+  def ask(askee: Any, block: Any): Unit = {
+    askee match {
+      case as: AgentSet[?] => as.ask(block.asInstanceOf[Agent => Unit])
+    }
+  }
+
+  def canMove(turtle: Any, distance: Any): Boolean = {
+
+    val t =
+      turtle match {
+        case t: Turtle => t
+        case _         => throw new Exception("Boop!")
+      }
+
+    val d =
+      distance match {
+        case d: Double => d
+        case _         => throw new Exception("Boop!")
+      }
+
+    patchRightAndAhead(t, 0.0, d).isDefined
+
+  }
 
   def clearAll(): Unit = {
     turtles.clear()
@@ -458,24 +507,49 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
     }
   }
 
-  def createTurtles(num: Int, init: Turtle => Unit): Unit = {
-    for (_ <- 0 until num) {
+  def createTurtles(num: Any, init: Any): Unit = {
+
+    val n =
+      num match {
+        case n: Int => n
+        case _      => throw new Exception("Boop!")
+      }
+
+    val f =
+      init match {
+        case f: Any => f.asInstanceOf[Turtle => Unit]
+      }
+
+    for (_ <- 0 until n) {
       val t = new Turtle(turtles.length, dtsName, this)
-      t.ask(init)
+      t.ask(f)
       turtles += t
     }
+
   }
 
   private val scratch: Array[Double] = new Array(patches.length)
 
-  def diffuse(varName: PatchVar, value: Double): Unit = {
+  def diffuse(varName: Any, value: Any): Unit = {
+
+    val vn =
+      varName match {
+        case vn: PatchVar => vn
+        case _            => throw new Exception("Boop!")
+      }
+
+    val v =
+      value match {
+        case v: Double => v
+        case _         => throw new Exception("Boop!")
+      }
 
     val xx = worldWidth
 
     val numPatches = scratch.length
 
     for (i <- 0 until numPatches) {
-      scratch(i) = patches(i).getVar(varName).asInstanceOf[Double]
+      scratch(i) = patches(i).getVar(vn).asInstanceOf[Double]
     }
 
     for (i <- 0 until numPatches) {
@@ -503,54 +577,66 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
       if ((bitMask & 0b0000_0010) != 0) { sum += scratch(i + xx    ); numBits += 1 }  // Bottom
       if ((bitMask & 0b0000_0001) != 0) { sum += scratch(i + xx + 1); numBits += 1 }  // Bottom-right
 
-      val newValue = scratch(i) + value * (sum / numBits - scratch(i))
-      patches(i).setVar(varName, newValue)
+      val newValue = scratch(i) + v * (sum / numBits - scratch(i))
+      patches(i).setVar(vn, newValue)
 
     }
 
   }
 
-  def forward(turtle: Turtle, units: Double): Unit = {
+  def forward(turtle: Any, units: Any): Unit = {
 
-    val startingPatch = patchAtCor(turtle.xcor, turtle.ycor).get
+    val t =
+      turtle match {
+        case t: Turtle => t
+        case _         => throw new Exception("Boop!")
+      }
 
-    val isNeg     = units < 0
-    var remaining = Math.abs(units)
+    val us =
+      units match {
+        case us: Double => us
+        case _         => throw new Exception("Boop!")
+      }
+
+    val startingPatch = patchAtCor(t.xcor, t.ycor).get
+
+    val isNeg     = us < 0
+    var remaining = Math.abs(us)
 
     while (remaining > 0) {
       val amount      = Math.min(1, remaining)
       val finalAmount = if (isNeg) -amount else amount
-      if (canMove(turtle, finalAmount)) {
-        turtle.xcor += finalAmount * turtle.dx
-        turtle.ycor += finalAmount * turtle.dy
+      if (canMove(t, finalAmount)) {
+        t.xcor += finalAmount * t.dx
+        t.ycor += finalAmount * t.dy
       }
       remaining = if (remaining < 1) 0 else remaining - 1
     }
 
-    if (units != 0) {
+    if (us != 0) {
 
       var i = 0
-      while (i < turtle.myLinks.size) {
+      while (i < t.myLinks.size) {
         // Would move any rigid link neighbors
         i = i + 1
       }
 
-      val mappingX = TurtleKey.Xcor -> turtle.xcor
-      val mappingY = TurtleKey.Ycor -> turtle.ycor
+      val mappingX = TurtleKey.Xcor -> t.xcor
+      val mappingY = TurtleKey.Ycor -> t.ycor
 
-      Updater.turtles.get(turtle.who).fold {
-        Updater.turtles += turtle.who -> MMap(mappingX, mappingY)
+      Updater.turtles.get(t.who).fold {
+        Updater.turtles += t.who -> MMap(mappingX, mappingY)
       } {
         _ ++= Seq(mappingX, mappingY)
       }
 
     }
 
-    val endingPatch = patchAtCor(turtle.xcor, turtle.ycor).get
+    val endingPatch = patchAtCor(t.xcor, t.ycor).get
 
     if (startingPatch != endingPatch) {
-      startingPatch.untrackTurtle(turtle.who)
-        endingPatch.  trackTurtle(turtle.who)
+      startingPatch.untrackTurtle(t.who)
+        endingPatch.  trackTurtle(t.who)
     }
 
   }
@@ -593,15 +679,33 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
 
   }
 
-  def patchRightAndAhead(turtle: Turtle, angle: Double, dist: Double): Option[Patch] = {
+  def patchRightAndAhead(turtle: Any, angle: Any, dist: Any): Option[Patch] = {
 
-    val trueAngle = (turtle.heading + angle) % 360.0
+    val t =
+      turtle match {
+        case t: Turtle => t
+        case _         => throw new Exception("Boop!")
+      }
+
+    val a =
+      angle match {
+        case a: Double => a
+        case _         => throw new Exception("Boop!")
+      }
+
+    val d =
+      dist match {
+        case d: Double => d
+        case _         => throw new Exception("Boop!")
+      }
+
+    val trueAngle = (t.heading + a) % 360.0
     val rads      = trueAngle * math.Pi / 180.0
     val dx        = math.sin(rads)
     val dy        = math.cos(rads)
 
-    val x = turtle.xcor + dist * (if (math.abs(dx) < 3.2e-15) 0.0 else dx)
-    val y = turtle.ycor + dist * (if (math.abs(dy) < 3.2e-15) 0.0 else dy)
+    val x = t.xcor + d * (if (math.abs(dx) < 3.2e-15) 0.0 else dx)
+    val y = t.ycor + d * (if (math.abs(dy) < 3.2e-15) 0.0 else dy)
 
     patchAtCor(x, y)
 
@@ -613,8 +717,13 @@ class Workspace(val minPxcor: Int, val maxPxcor: Int, val minPycor: Int, val max
     Updater.world.getOrElseUpdate(0, MMap.empty) += mapping
   }
 
-  def setDefaultTurtleShape(shapeName: String): Unit = {
-    dtsName = shapeName
+  def setDefaultTurtleShape(shapeName: Any): Unit = {
+    val sn =
+      shapeName match {
+        case sn: String => sn
+        case _          => throw new Exception("Boop!")
+      }
+    dtsName = sn
   }
 
   def setGlobal(name: GlobalVar, value: Any): Unit = {
@@ -652,72 +761,75 @@ object AntsModel {
   }
 
   def setupPatches(): Unit = {
-    workspace.allPatches().ask {
-      (self: Patch) =>
+    workspace.ask(
+      workspace.allPatches()
+    , (self: Patch) =>
         setupNest(self)
         setupFood(self)
         recolorPatch(self)
-    }
+    )
   }
 
   def setupNest(self: Patch): Unit = {
-    self.setVar(IsNest,            Box.distancexy(self, 0, 0) < 5)
-    self.setVar(NestScent, 200.0 - Box.distancexy(self, 0, 0)    )
+    self.setVar(IsNest,    lessThan(    Box.distancexy(self, 0.0, 0.0), 5.0))
+    self.setVar(NestScent, minus(200.0, Box.distancexy(self, 0.0, 0.0)))
   }
 
   def setupFood(self: Patch): Unit = {
-    if (Box.distancexy(self, 0.6 * workspace.maxPxcor, 0) < 5) {
+    badIf (lessThan(Box.distancexy(self, times(0.6, workspace.maxPxcor.toDouble), 0.0), 5.0), {
       self.setVar(FoodSourceNum, 1.0)
-    }
-    if (Box.distancexy(self, -0.6 * workspace.maxPxcor, -0.6 * workspace.maxPycor) < 5) {
+    })
+    badIf (lessThan(Box.distancexy(self, times(-0.6, workspace.maxPxcor.toDouble), times(-0.6, workspace.maxPycor.toDouble)), 5.0), {
       self.setVar(FoodSourceNum, 2.0)
-    }
-    if (Box.distancexy(self, -0.8 * workspace.maxPxcor, 0.8 * workspace.maxPycor) < 5) {
+    })
+    badIf (lessThan(Box.distancexy(self, times(-0.8, workspace.maxPxcor.toDouble), times(0.8, workspace.maxPycor.toDouble)), 5.0), {
       self.setVar(FoodSourceNum, 3.0)
-    }
-    if (self.getVar(FoodSourceNum).asInstanceOf[Double] > 0) {
+    })
+    badIf (greaterThan(self.getVar(FoodSourceNum).asInstanceOf[Double], 0.0), {
       self.setVar(Food, Random.oneOf(Array(1.0, 2.0)))
-    }
+    })
   }
 
   def recolorPatch(self: Patch): Unit = {
-    if (self.getVar(IsNest) == true) {
+    badIfElse (self.getVar(IsNest) == true, {
       self.setColor(115.0)
-    } else if (self.getVar(Food).asInstanceOf[Double] > 0) {
-      self.getVar(FoodSourceNum).asInstanceOf[Double].toInt match {
-        case 1 => self.setColor(85.0)
-        case 2 => self.setColor(95.0)
-        case 3 => self.setColor(105.0)
-        case n => System.err.println(s"Impossible food source number: $n")
-      }
-    } else {
-      val color = ColorModel.scaleColor(55.0, self.getVar(Chemical).asInstanceOf[Double], 0.1, 5.0)
-      self.setColor(color)
-    }
+    }, { badIfElse (greaterThan(self.getVar(Food).asInstanceOf[Double], 0.0), {
+        val fsn = self.getVar(FoodSourceNum).asInstanceOf[Double]
+        badIf (nlEquals(fsn, 1.0), { self.setColor( 85.0) })
+        badIf (nlEquals(fsn, 2.0), { self.setColor( 95.0) })
+        badIf (nlEquals(fsn, 3.0), { self.setColor(105.0) })
+      }, {
+        val color = ColorModel.scaleColor(55.0, self.getVar(Chemical).asInstanceOf[Double], 0.1, 5.0)
+        self.setColor(color)
+      })
+    })
   }
 
   def go(): Unit = {
 
-    workspace.allTurtles().ask {
-      (self: Turtle) =>
-        if (self.who < workspace.ticks) {
-          if (self.color == 15.0)
+    workspace.ask(
+      workspace.allTurtles()
+    , (self: Turtle) =>
+        badIf (lessThan(self.who.toDouble, workspace.ticks.toDouble), {
+          badIfElse (nlEquals(self.color, 15.0), {
             lookForFood(self)
-          else
+          }, {
             returnToNest(self)
+          })
           wiggle(self)
           workspace.forward(self, 1.0)
-        }
-    }
+        })
+    )
 
-    workspace.diffuse(Chemical, workspace.getGlobal(DiffusionRate).asInstanceOf[Double] / 100.0)
+    workspace.diffuse(Chemical, div(workspace.getGlobal(DiffusionRate).asInstanceOf[Double], 100.0))
 
     val evapRate = workspace.getGlobal(EvaporationRate).asInstanceOf[Double]
-    workspace.allPatches().ask {
-      (self: Patch) =>
-        self.setVar(Chemical, self.getVar(Chemical).asInstanceOf[Double] * (100.0 - evapRate) / 100.0)
+    workspace.ask(
+      workspace.allPatches()
+    , (self: Patch) =>
+        self.setVar(Chemical, div(times(self.getVar(Chemical).asInstanceOf[Double], (100.0 - evapRate)), 100.0))
         recolorPatch(self)
-    }
+    )
 
     workspace.tick()
 
@@ -725,65 +837,309 @@ object AntsModel {
 
   def returnToNest(self: Turtle): Unit = {
     val patchHere = workspace.patchAt(self).get
-    if (patchHere.getVar(IsNest) == true) {
+    badIfElse (patchHere.getVar(IsNest) == true, {
       self.setColor(15.0)
       self.rotate(180.0)
-    } else {
-      patchHere.setVar(Chemical, patchHere.getVar(Chemical).asInstanceOf[Double] + 60.0)
+    }, {
+      patchHere.setVar(Chemical, plus(patchHere.getVar(Chemical).asInstanceOf[Double], 60.0))
       uphillNestScent(self)
-    }
+    })
   }
 
   def lookForFood(self: Turtle): Unit = {
     val patchHere = workspace.patchAt(self).get
     val food      = patchHere.getVar(Food).asInstanceOf[Double]
-    if (food > 0) {
+    badIfElse (greaterThan(food, 0.0), {
       self.setColor(26.0)
-      patchHere.setVar(Food, food - 1.0)
+      patchHere.setVar(Food, minus(food, 1.0))
       self.rotate(180.0)
-    } else {
+    }, {
       val chem = patchHere.getVar(Chemical).asInstanceOf[Double]
-      if (chem >= 0.05 && chem < 2.0) {
+      badIf (and(greaterThanOrEqual(chem, 0.05), lessThan(chem, 2.0)), {
         uphillChemical(self)
-      }
-    }
+      })
+    })
   }
 
   def uphillChemical(self: Turtle): Unit = {
-    val scentAhead = chemicalAtAngle(self,   0)
-    val scentRight = chemicalAtAngle(self,  45)
-    val scentLeft  = chemicalAtAngle(self, -45)
-    if ((scentRight > scentAhead) || (scentLeft > scentAhead)) {
-      val deg = if (scentRight > scentLeft) 45.0 else -45.0
+    val scentAhead = chemicalAtAngle(self,   0.0)
+    val scentRight = chemicalAtAngle(self,  45.0)
+    val scentLeft  = chemicalAtAngle(self, -45.0)
+    badIf (or(greaterThan(scentRight, scentAhead), greaterThan(scentLeft, scentAhead)), {
+      var deg: Double = 0
+      badIfElse (greaterThan(scentRight, scentLeft), { deg = 45.0 }, { deg = -45.0 })
       self.rotate(deg)
-    }
+    })
   }
 
   def uphillNestScent(self: Turtle): Unit = {
-    val scentAhead = nestScentAtAngle(self,   0)
-    val scentRight = nestScentAtAngle(self,  45)
-    val scentLeft  = nestScentAtAngle(self, -45)
-    if ((scentRight > scentAhead) || (scentLeft > scentAhead)) {
-      val deg = if (scentRight > scentLeft) 45.0 else -45.0
+    val scentAhead = nestScentAtAngle(self,   0.0)
+    val scentRight = nestScentAtAngle(self,  45.0)
+    val scentLeft  = nestScentAtAngle(self, -45.0)
+    badIf (or(greaterThan(scentRight, scentAhead), greaterThan(scentLeft, scentAhead)), {
+      var deg: Double = 0
+      badIfElse (greaterThan(scentRight, scentLeft), { deg = 45.0 }, { deg = -45.0 })
       self.rotate(deg)
-    }
+    })
   }
 
   def wiggle(self: Turtle): Unit = {
-    self.rotate( RNG.nextInt(40).toDouble)
-    self.rotate(-RNG.nextInt(40).toDouble)
-    if (!workspace.canMove(self, 1.0)) {
+    self.rotate( RNG.nextInt(40.0.toInt).toDouble)
+    self.rotate(-RNG.nextInt(40.0.toInt).toDouble)
+    val canInFactMove = workspace.canMove(self, 1.0).asInstanceOf[Any]
+    val yesCanMove =
+      canInFactMove match {
+        case cm: Boolean => cm
+        case _           => throw new Exception("Boop!")
+      }
+    badIf (not(yesCanMove), {
       self.rotate(180.0)
-    }
+    })
   }
 
   def nestScentAtAngle(turtle: Turtle, angle: Double): Double =
-    workspace.patchRightAndAhead(turtle, angle, 1.0)
-      .fold(0.0)(_.getVar(NestScent).asInstanceOf[Double])
+    workspace.patchRightAndAhead(turtle, angle, 1.0).fold(0.0) {
+      patch =>
+        val x = patch.asInstanceOf[Any]
+        x match {
+          case p: Patch => p.getVar(NestScent).asInstanceOf[Double]
+          case _        => throw new Exception("Boop!")
+        }
+    }
 
   def chemicalAtAngle(turtle: Turtle, angle: Double): Double =
-    workspace.patchRightAndAhead(turtle, angle, 1.0)
-      .fold(0.0)(_.getVar(Chemical).asInstanceOf[Double])
+    workspace.patchRightAndAhead(turtle, angle, 1.0).fold(0.0) {
+      patch =>
+        val x = patch.asInstanceOf[Any]
+        x match {
+          case p: Patch => p.getVar(Chemical).asInstanceOf[Double]
+          case _        => throw new Exception("Boop!")
+        }
+    }
+
+  def and(x: Any, y: => Any): Boolean = {
+
+    val i =
+      x match {
+        case i: Boolean => i
+        case _          => throw new Exception("Boop!")
+      }
+
+    i && {
+      val j =
+        y match {
+          case j: Boolean => j
+          case _          => throw new Exception("Boop!")
+        }
+      j
+    }
+
+  }
+
+  def badIf(pred: Any, block: => Any): Unit = {
+
+    val cond =
+      pred match {
+        case c: Boolean => c
+        case _          => throw new Exception("Boop!")
+      }
+
+    if (cond) {
+      block
+    }
+
+  }
+
+  def badIfElse(pred: Any, block1: => Any, block2: => Any): Unit = {
+
+    val cond =
+      pred match {
+        case c: Boolean => c
+        case _          => throw new Exception("Boop!")
+      }
+
+    if (cond) {
+      block1
+    } else {
+      block2
+    }
+
+  }
+
+  def div(x: Any, y: Any): Double = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i / j
+
+  }
+
+  def greaterThan(x: Any, y: Any): Boolean = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i > j
+
+  }
+
+  def greaterThanOrEqual(x: Any, y: Any): Boolean = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i >= j
+
+  }
+
+  def lessThan(x: Any, y: Any): Boolean = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i < j
+
+  }
+
+  def minus(x: Any, y: Any): Double = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i - j
+
+  }
+
+  def nlEquals(x: Any, y: Any): Boolean =
+    (x, y) match {
+      case (x: Double, y: Double) => x == y
+      case _                      => throw new Exception("Boop!")
+    }
+
+  def negate(x: Any): Double = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    -i
+
+  }
+
+  def not(x: Any): Boolean = {
+
+    val y =
+      x match {
+        case y: Boolean => y
+        case _          => throw new Exception("Boop!")
+      }
+
+    !y
+
+  }
+
+  def or(x: Any, y: => Any): Boolean = {
+
+    val i =
+      x match {
+        case i: Boolean => i
+        case _          => throw new Exception("Boop!")
+      }
+
+    i || {
+      val j =
+        y match {
+          case j: Boolean => j
+          case _          => throw new Exception("Boop!")
+        }
+      j
+    }
+
+  }
+
+  def plus(x: Any, y: Any): Double = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i + j
+
+  }
+
+  def times(x: Any, y: Any): Double = {
+
+    val i =
+      x match {
+        case i: Double => i
+        case _         => throw new Exception("Boop!")
+      }
+
+    val j =
+      y match {
+        case j: Double => j
+        case _         => throw new Exception("Boop!")
+      }
+
+    i * j
+
+  }
 
 }
 
