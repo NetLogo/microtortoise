@@ -300,8 +300,8 @@ class AgentSet<T extends Agent> {
       this.agents[j] = tmp;
     }
 
-    for (let i = 0; i < this.agents.length; i++) {
-      f(this.agents[i]!);
+    for (const agent of this.agents) {
+      f(agent);
     }
 
   }
