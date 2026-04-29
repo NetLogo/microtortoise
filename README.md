@@ -12,7 +12,7 @@ Get a [Galapagos](www.github.com/NetLogo/Galapagos) instance running on port 900
 
 ```sh
 cd scala
-sbt "run bench" # Generates a performance number
+sbt "run bench" # Generates a performance metric
 sbt "run json"  # Dumps out a JSON file into the root of this repo
 ```
 
