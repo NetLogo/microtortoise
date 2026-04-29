@@ -7,6 +7,12 @@
 .DS_Store
 .history
 
+.bloop/
+.bsp/
+.metals/
+/scala/project/metals.sbt
+/scala/project/project/
+
 /TODO*.md
 /tsconfig.tsbuildinfo
 
