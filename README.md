@@ -32,6 +32,17 @@ npm install
 npm run build
 ```
 
+### Headless NetLogo
+
+This one allows you to run against a headless version of the actual NetLogo desktop application.
+
+```sh
+cd headless
+sbt 'run "../Ants.nlogox"'
+```
+
+Unlike the other options here, you cannot see it run in the browser.  Its functionality could be expanded to hook into the `mirroring` stuff used by the Tortoise tests, so that you could render the `mirroring` output as JSON and read it in the browser.  But this is left as an exercise for the reader.
+
 ### Viewing the model in action
 
 From the root of the repository, launch an HTTP server, like this:
